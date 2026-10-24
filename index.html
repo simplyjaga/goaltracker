@@ -125,7 +125,7 @@
   .mv-wrap { position: relative; }
   .mvbtn { font-size: 11px; }
 
-  .row { display: flex; align-items: stretch; margin-bottom: 16px; }
+  .row { display: flex; align-items: stretch; margin-bottom: 24px; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; align-self: flex-start; }
   .card:hover { border-color: var(--border-h); box-shadow: 0 1px 2px rgba(0,0,0,.04); }
   .mcard { position: relative; width: 224px; flex-shrink: 0; padding: 12px; }
@@ -147,6 +147,7 @@
   .target .del, .task .del { position: static; font-size: 10px; flex-shrink: 0; }
 
   .target { display: flex; align-items: flex-start; gap: 6px; border-radius: 4px; padding: 2px 4px; }
+  .target + .target { margin-top: 6px; }
   .target input[type=checkbox] { width: 14px; height: 14px; margin-top: 3px; accent-color: var(--done-cb); flex-shrink: 0; }
   .target input[type=checkbox]:disabled { opacity: .6; }
   .tname { flex: 1; min-width: 0; font-size: 13px; line-height: 20px; color: var(--text2); cursor: text; word-break: normal; overflow-wrap: break-word; }
@@ -168,6 +169,7 @@
   .cell.future { opacity: .6; }
   .cell .tasks { flex: 1; }
   .task { position: relative; display: flex; align-items: flex-start; gap: 4px; border-radius: 4px; padding: 2px 4px; }
+  .task + .task { margin-top: 6px; }
   .task input[type=checkbox] { width: 14px; height: 14px; margin-top: 1px; accent-color: var(--done-cb); flex-shrink: 0; }
   .task .tmain { flex: 1; min-width: 0; }
   .task .txt { display: block; font-size: 13px; line-height: 17px; color: var(--text2); cursor: text; word-break: normal; overflow-wrap: break-word; }
@@ -206,7 +208,7 @@
   html.dark .dchip.today.sel .dd { color: #92400e; }
   .dnav { width: 28px; height: 28px; flex-shrink: 0; padding: 0; }
 
-  .pcard { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; }
+  .pcard { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 18px; }
   .psec { padding: 12px; position: relative; }
   .psec + .psec { border-top: 1px solid var(--border); }
   .pconn { display: flex; justify-content: center; height: 14px; margin: -1px 0; position: relative; z-index: 1; }
@@ -621,10 +623,9 @@ function renderRow(goal, curMonth, days, today, wn) {
   const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
   const wFrac = plan ? weekProgress(targets, tasks) : 0;
   const mFrac = goalMonthFrac(goal);
-  const catCol = catColorOf(goal);
 
   return `<div class="row group" data-goal="${goal.id}">
-    <div class="card mcard" style="box-shadow: inset 3px 0 0 ${catCol}">
+    <div class="card mcard">
       <span class="tag m">Monthly</span>
       <div class="mtitle" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</div>
       ${bar(mFrac, 'm')}
@@ -642,7 +643,7 @@ function renderRow(goal, curMonth, days, today, wn) {
     ${connector(mFrac)}
     <div class="card wcard">${renderWeekCard(goal, plan, targets, tasks, wFrac, wn)}</div>
     ${connector(wFrac)}
-    <div class="days">${days.map((d) => renderCell(goal, plan, d, targets, tasks, today, catCol)).join('')}</div>
+    <div class="days">${days.map((d) => renderCell(goal, plan, d, targets, tasks, today)).join('')}</div>
   </div>`;
 }
 
@@ -666,19 +667,19 @@ function renderWeekCard(goal, plan, targets, tasks, wFrac, wn) {
     <button class="addbtn" data-action="add-target" data-plan="${plan.id}" data-goal="${goal.id}" title="Add target">+</button>`;
 }
 
-function renderCell(goal, plan, date, targets, tasks, today, catCol) {
+function renderCell(goal, plan, date, targets, tasks, today) {
   const cellTasks = tasks.filter((t) => t.date === date).sort((a, b) => a.order - b.order);
   const cls = ['cell'];
   if (date === today) cls.push('today');
   else if (date > today) cls.push('future');
-  const items = cellTasks.map((t) => taskHtml(t, targets, catCol)).join('');
+  const items = cellTasks.map((t) => taskHtml(t, targets)).join('');
   return `<div class="${cls.join(' ')}" data-date="${date}">
     <div class="tasks">${items}</div>
     <button class="addbtn" data-action="add-task" data-goal="${goal.id}" data-plan="${plan ? plan.id : ''}" data-date="${date}" title="Add task">+</button>
   </div>`;
 }
 
-function taskHtml(t, targets, catCol) {
+function taskHtml(t, targets) {
   const linked = targets.find((x) => x.id === t.targetId);
   const chip = `<div class="chip-wrap">
     <button class="chip ${linked ? 'linked' : ''}" data-action="chip" data-id="${t.id}" title="${linked ? 'Linked to: ' + esc(linked.title) : 'Link to a weekly target'}">⚑</button>
@@ -687,7 +688,7 @@ function taskHtml(t, targets, catCol) {
       ${targets.map((x) => `<button data-action="chip-pick" data-task="${t.id}" data-target="${x.id}" class="${x.id === t.targetId ? 'sel' : ''}">${esc(x.title)}</button>`).join('')}
     </div>` : ''}
   </div>`;
-  return `<div class="task" data-tid="${t.targetId || ''}" style="border-left:2px solid ${catCol || 'var(--border-h)'}">
+  return `<div class="task" data-tid="${t.targetId || ''}">
     <input type="checkbox" data-change="task-done" data-id="${t.id}" ${t.done ? 'checked' : ''} />
     <span class="tmain">
       <span class="txt ${t.done ? 'done' : ''}" data-action="edit-task" data-id="${t.id}">${esc(t.text)}</span>
@@ -760,7 +761,6 @@ function renderPhoneCard(goal, day, today, wn) {
   const dayTasks = tasks.filter((t) => t.date === day).sort((a, b) => a.order - b.order);
   const wFrac = plan ? weekProgress(targets, tasks) : 0;
   const mFrac = goalMonthFrac(goal);
-  const catCol = catColorOf(goal);
 
   const weekPart = plan
     ? `<span class="tag w">Week ${wn}</span>
@@ -778,7 +778,7 @@ function renderPhoneCard(goal, day, today, wn) {
        <button class="addbtn" data-action="add-target" data-plan="${plan.id}" data-goal="${goal.id}" title="Add target">+</button>`
     : `<button class="dashed" data-action="add-plan" data-goal="${goal.id}">+ Add weekly plan</button>`;
 
-  return `<div class="pcard group" data-goal="${goal.id}" style="box-shadow: inset 3px 0 0 ${catCol}">
+  return `<div class="pcard group" data-goal="${goal.id}">
     <div class="psec">
       <span class="tag m">Monthly</span>
       <div class="mtitle" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</div>
@@ -799,7 +799,7 @@ function renderPhoneCard(goal, day, today, wn) {
     <div class="pconn">${downArrow(wFrac)}</div>
     <div class="psec">
       <div class="pday ${day === today ? 'today' : ''}">${WD[parseISO(day).getDay()].toUpperCase()} ${parseISO(day).getDate()}</div>
-      ${dayTasks.map((t) => taskHtml(t, targets, catCol)).join('')}
+      ${dayTasks.map((t) => taskHtml(t, targets)).join('')}
       <button class="addbtn" data-action="add-task" data-goal="${goal.id}" data-plan="${plan ? plan.id : ''}" data-date="${day}" title="Add task">+</button>
     </div>
   </div>`;
