@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23FFD21E'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11' stroke='%23111827' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<title>Goal Tracker</title>
+<style>
+  :root {
+    --sans: "Source Sans Pro","Source Sans 3",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono: "IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --bg: #ffffff; --header-bg: #ffffff; --card: #ffffff; --fill: #f9fafb;
+    --border: #e5e7eb; --border-h: #d1d5db;
+    --text: #111827; --text2: #4b5563; --muted: #9ca3af;
+    --yellow: #FFD21E;
+    --today-bg: #fffbeb; --today-head: #b45309;
+    --track: #f3f4f6;
+    --conn: #d1d5db; --done-cb: #16a34a; --ok: #22c55e;
+    --tag-m-bg: linear-gradient(to right,#f5f3ff,#ffffff); --tag-m-c: #6d28d9; --tag-m-b: #ede9fe;
+    --tag-w-bg: linear-gradient(to right,#eff6ff,#ffffff); --tag-w-c: #1d4ed8; --tag-w-b: #dbeafe;
+    --linkchip-bg: #f3f4f6; --linkchip-c: #4b5563;
+    --hl-ring: #93c5fd; --hl-bg: #eff6ff;
+    --pop: #ffffff;
+    --pop-shadow: 0 4px 12px rgba(0,0,0,.08);
+    --dot-o: #d1d5db; --dot-h: #9ca3af;
+    --cal-sel: #f9fafb; --cal-hov: #f9fafb;
+  }
+  html.dark {
+    --bg: #0b0f19; --header-bg: #0b0f19; --card: #111827; --fill: #0f1523;
+    --border: #1f2937; --border-h: #374151;
+    --text: #e5e7eb; --text2: #9ca3af; --muted: #6b7280;
+    --today-bg: rgba(255,210,30,.06); --today-head: #fcd34d;
+    --track: #1f2937;
+    --conn: #374151;
+    --tag-m-bg: linear-gradient(to right, rgba(139,92,246,.15), transparent); --tag-m-c: #c4b5fd; --tag-m-b: transparent;
+    --tag-w-bg: linear-gradient(to right, rgba(96,165,250,.15), transparent); --tag-w-c: #93c5fd; --tag-w-b: transparent;
+    --linkchip-bg: #1f2937; --linkchip-c: #9ca3af;
+    --hl-ring: #3b82f6; --hl-bg: rgba(30,58,138,.4);
+    --pop: #111827;
+    --pop-shadow: 0 4px 12px rgba(0,0,0,.4);
+    --dot-o: #374151; --dot-h: #6b7280;
+    --cal-sel: #0f1523; --cal-hov: #0f1523;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 var(--sans); background: var(--bg); color: var(--text); }
+  .mono { font-family: var(--mono); }
+  .wrap { min-width: 1100px; overflow-x: auto; }
+
+  /* ---------- header ---------- */
+  header { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; background: var(--header-bg); border-bottom: 1px solid var(--border); }
+  .logo { width: 20px; height: 20px; border-radius: 5px; background: var(--yellow); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  h1 { font-size: 15px; font-weight: 700; color: var(--text); margin: 0; letter-spacing: -0.01em; }
+  .switcher { display: flex; align-items: center; gap: 4px; }
+  .wlabel { font-family: var(--mono); font-size: 13px; color: var(--text); min-width: 150px; text-align: center; }
+  .gbtn { height: 28px; padding: 0 9px; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; font-size: 12px; color: var(--text2); font-family: var(--sans); }
+  .gbtn:hover { background: var(--fill); border-color: var(--border-h); }
+  .gbtn:disabled { opacity: .4; cursor: default; }
+  .spacer { flex: 1; }
+
+  .menu-wrap, .cal-wrap { position: relative; }
+  .menu { position: absolute; right: 0; top: 34px; z-index: 50; width: 176px; padding: 4px 0; background: var(--pop); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--pop-shadow); }
+  .menu button { display: block; width: 100%; border: 0; background: none; text-align: left; padding: 7px 12px; font-size: 13px; color: var(--text2); cursor: pointer; font-family: var(--sans); }
+  .menu button:hover { background: var(--fill); }
+
+  /* ---------- mini calendar ---------- */
+  .calpop { position: absolute; right: 0; top: 34px; z-index: 50; width: 320px; padding: 10px; background: var(--pop); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--pop-shadow); }
+  .calhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .calhead .cm { font-size: 13px; font-weight: 600; color: var(--text); }
+  .calgrid { display: grid; grid-template-columns: 34px repeat(6, 26px) 1fr; align-items: center; }
+  .calgrid .ch { font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: center; padding: 2px 0; }
+  .calrow { display: contents; }
+  .calrow > span { padding: 3px 0; text-align: center; font-size: 12px; }
+  .calrow .wk { font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: left; padding-left: 4px; }
+  .calrow .cd { color: var(--text2); border-radius: 4px; }
+  .calrow .cd.out { color: var(--muted); opacity: .55; }
+  .calrow .cd.today { font-weight: 700; color: var(--today-head); box-shadow: inset 0 0 0 1.5px var(--today-head); }
+  .calrow .dots { display: flex; gap: 4px; padding-left: 8px; }
+  .calrow:hover > span { background: var(--cal-hov); }
+  .calrow.sel > span { background: var(--cal-sel); font-weight: 600; }
+  .calrow { cursor: pointer; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--dot-o); display: inline-block; }
+  .dot.half { background: var(--dot-h); border-color: var(--dot-h); }
+  .dot.full { background: var(--ok); border-color: var(--ok); }
+
+  /* ---------- board ---------- */
+  main { padding: 16px; }
+  .colheads { display: flex; margin-bottom: 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+  .colheads .mc { width: 224px; flex-shrink: 0; padding-left: 4px; }
+  .colheads .cn { width: 28px; flex-shrink: 0; }
+  .colheads .wc { width: 256px; flex-shrink: 0; padding-left: 4px; }
+  .colheads .dheads { flex: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .colheads .dheads span { padding-left: 8px; font-family: var(--mono); font-weight: 400; }
+  .colheads .dheads span.out { opacity: .55; }
+  .colheads .dheads span.today { color: var(--today-head); font-weight: 700; }
+
+  .row { display: flex; align-items: stretch; margin-bottom: 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; align-self: flex-start; }
+  .card:hover { border-color: var(--border-h); box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .mcard { position: relative; width: 224px; flex-shrink: 0; padding: 12px; }
+  .wcard { width: 256px; flex-shrink: 0; padding: 10px 10px 8px; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: .04em; padding: 1px 7px; border-radius: 999px; margin-bottom: 5px; }
+  .tag.m { background: var(--tag-m-bg); color: var(--tag-m-c); border: 1px solid var(--tag-m-b); }
+  .tag.w { background: var(--tag-w-bg); color: var(--tag-w-c); border: 1px solid var(--tag-w-b); }
+  .mtitle { font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--text); cursor: text; word-break: break-word; }
+  .pbar { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .wcard .pbar { margin: 0 0 6px 0; }
+  .pbar .track { flex: 1; height: 6px; border-radius: 999px; background: var(--track); overflow: hidden; }
+  .pbar .fill { height: 100%; border-radius: 999px; }
+  .pbar .num { font-family: var(--mono); font-size: 12px; color: var(--text2); }
+  .conn { flex-shrink: 0; align-self: flex-start; margin-top: 21px; }
+
+  .del { position: absolute; right: 6px; top: 6px; border: 0; background: none; font-size: 12px; color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .15s; }
+  .del:hover { color: #ef4444; }
+  .group:hover .del, .target:hover .del, .task:hover .del { opacity: 1; }
+  .target .del, .task .del { position: static; font-size: 10px; flex-shrink: 0; }
+
+  .target { display: flex; align-items: center; gap: 6px; border-radius: 4px; padding: 2px 4px; }
+  .target input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--done-cb); flex-shrink: 0; }
+  .target input[type=checkbox]:disabled { opacity: .6; }
+  .tname { flex: 1; min-width: 0; font-size: 13px; line-height: 20px; color: var(--text2); cursor: text; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tname.done { color: var(--muted); text-decoration: line-through; }
+  .tfrac { font-family: var(--mono); font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+  .addlink { border: 0; background: none; cursor: pointer; font-size: 12px; color: var(--muted); padding: 2px 4px; font-family: var(--sans); }
+  .addlink:hover { color: var(--text2); }
+  .dashed { width: 100%; border: 1px dashed var(--border-h); border-radius: 6px; background: none; padding: 14px 0; font-size: 12px; color: var(--muted); cursor: pointer; font-family: var(--sans); }
+  .dashed:hover { background: var(--fill); color: var(--text2); }
+  .dashed.monthly { width: 224px; padding: 12px 0; font-size: 13px; }
+
+  .days { flex: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: stretch; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+  .cell { display: flex; flex-direction: column; min-height: 72px; padding: 4px; border-left: 1px solid var(--border); }
+  .cell:first-child { border-left: 0; border-radius: 8px 0 0 8px; }
+  .cell:last-child { border-radius: 0 8px 8px 0; }
+  .cell.today { background: var(--today-bg); }
+  .cell.future { opacity: .6; }
+  .cell .tasks { flex: 1; }
+  .task { position: relative; display: flex; align-items: flex-start; gap: 4px; border-radius: 4px; padding: 2px 4px; }
+  .task input[type=checkbox] { width: 14px; height: 14px; margin-top: 1px; accent-color: var(--done-cb); flex-shrink: 0; }
+  .task .tmain { flex: 1; min-width: 0; }
+  .task .txt { display: block; font-size: 13px; line-height: 17px; color: var(--text2); cursor: text; word-break: normal; overflow-wrap: break-word; }
+  .task .txt.done { color: var(--muted); text-decoration: line-through; }
+  .task .tlink { display: inline-block; font-family: var(--mono); font-size: 11px; line-height: 15px; padding: 0 5px; border-radius: 4px; background: var(--linkchip-bg); color: var(--linkchip-c); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .task.hl { outline: 1px solid var(--hl-ring); background: var(--hl-bg); }
+  .task .tools { position: absolute; top: 0; right: 0; display: flex; align-items: center; gap: 2px; padding: 0 2px; background: var(--card); border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.12); opacity: 0; transition: opacity .15s; }
+  .task:hover .tools { opacity: 1; }
+
+  .chip-wrap { position: relative; }
+  .chip { border: 0; cursor: pointer; border-radius: 999px; padding: 0 6px; font-size: 10px; line-height: 16px; background: none; color: var(--muted); }
+  .chip:hover { background: var(--fill); }
+  .chip.linked { background: var(--linkchip-bg); color: var(--linkchip-c); }
+  .dropdown { position: absolute; right: 0; top: 18px; z-index: 40; width: 176px; padding: 4px 0; background: var(--pop); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--pop-shadow); }
+  .dropdown button { display: block; width: 100%; border: 0; background: none; text-align: left; padding: 4px 12px; font-size: 12px; color: var(--text2); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--sans); }
+  .dropdown button:hover { background: var(--fill); }
+  .dropdown button.sel { font-weight: 600; color: var(--text); }
+
+  .inline { width: 100%; padding: 3px 6px; font-size: 14px; font-family: var(--sans); color: var(--text); background: var(--card); border: 1px solid var(--border-h); border-radius: 4px; outline: none; }
+  .cell .inline, .task .inline, .target .inline { font-size: 12px; }
+
+
+
+  /* ---------- phone <768px ---------- */
+  .daybar { display: flex; align-items: center; gap: 4px; width: 100%; }
+  .dchip { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; padding: 3px 0 4px; text-align: center; font-family: var(--mono); color: var(--text2); position: relative; }
+  .dchip .dn { display: block; font-size: 9px; letter-spacing: .05em; color: var(--muted); }
+  .dchip .dd { display: block; font-size: 13px; }
+  .dchip .ddot { position: absolute; left: 50%; transform: translateX(-50%); bottom: 2px; width: 4px; height: 4px; border-radius: 50%; background: var(--muted); }
+  .dchip.sel { background: #111827; border-color: #111827; color: #ffffff; }
+  .dchip.sel .dn { color: #d1d5db; }
+  .dchip.today .dd { color: var(--today-head); font-weight: 700; }
+  .dchip.today.sel .dd { color: var(--yellow); }
+  html.dark .dchip.sel { background: #e5e7eb; border-color: #e5e7eb; color: #111827; }
+  html.dark .dchip.sel .dn { color: #4b5563; }
+  html.dark .dchip.today.sel .dd { color: #92400e; }
+  .dnav { width: 28px; height: 28px; flex-shrink: 0; padding: 0; }
+
+  .pcard { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; }
+  .psec { padding: 12px; position: relative; }
+  .psec + .psec { border-top: 1px solid var(--border); }
+  .pconn { display: flex; justify-content: center; height: 14px; margin: -1px 0; position: relative; z-index: 1; }
+  .pday { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+  .pday.today { color: var(--today-head); font-weight: 700; }
+  .addlink.wide { display: block; width: 100%; text-align: left; padding: 6px 4px 2px; }
+
+  .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 49; }
+
+  @media (max-width: 767px) {
+    .wrap { min-width: 0; }
+    header { flex-wrap: wrap; height: auto; min-height: 56px; padding: 8px 12px; row-gap: 8px; }
+    header .wlabel { min-width: 0; flex: 1; font-size: 12px; }
+    header .switcher { flex: 1; min-width: 0; }
+    header .gbtn { padding: 0 7px; }
+    .dchip { flex: 1 1 0; min-width: 0; padding: 3px 0 4px; }
+    main { padding: 12px; }
+    .dashed.monthly { width: 100%; }
+    .calpop { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto; max-width: 100vw; border-radius: 12px 12px 0 0; z-index: 50; padding-bottom: 18px; }
+    .menu, .dropdown { max-width: calc(100vw - 24px); }
+    /* touch: always-visible tools, >=32px tap targets, no iOS zoom on inputs */
+    .del { opacity: 1; min-width: 32px; min-height: 32px; display: inline-flex; align-items: center; justify-content: center; }
+    .task .tools { opacity: 1; position: static; box-shadow: none; background: none; padding: 0; flex-shrink: 0; }
+    .chip { min-width: 32px; min-height: 32px; }
+    .inline { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="app"></div>
+</div>
+<input type="file" id="importFile" accept="application/json" hidden />
+<script>
+'use strict';
+
+/* ---------------- dates (local time only, no toISOString) ---------------- */
+const pad = (n) => String(n).padStart(2, '0');
+const toISODate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const monthKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+const parseISO = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+
+function weekStartOf(d) {
+  const r = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  r.setDate(r.getDate() - ((r.getDay() + 6) % 7));
+  return toISODate(r);
+}
+function weekDays(weekStart) {
+  const mon = parseISO(weekStart);
+  return Array.from({ length: 6 }, (_, i) => toISODate(addDays(mon, i)));
+}
+/** A week belongs to the month containing its Thursday (ISO convention). */
+function monthOfWeek(weekStart) {
+  return monthKey(addDays(parseISO(weekStart), 3));
+}
+/** All Mondays whose Thursday falls in `month`. */
+function weeksOfMonth(month) {
+  const [y, m] = month.split('-').map(Number);
+  let w = parseISO(weekStartOf(new Date(y, m - 1, 1)));
+  if (monthOfWeek(toISODate(w)) !== month) w = addDays(w, 7);
+  const out = [];
+  while (monthOfWeek(toISODate(w)) === month) { out.push(toISODate(w)); w = addDays(w, 7); }
+  return out;
+}
+function isoWeekNumber(weekStart) {
+  const thu = addDays(parseISO(weekStart), 3);
+  const jan1 = new Date(thu.getFullYear(), 0, 1);
+  return Math.floor((thu - jan1) / (7 * 864e5)) + 1;
+}
+function shiftMonth(month, delta) {
+  const [y, m] = month.split('-').map(Number);
+  return monthKey(new Date(y, m - 1 + delta, 1));
+}
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const formatMonth = (month) => `${MONTHS[Number(month.slice(5)) - 1]} ${month.slice(0, 4)}`;
+/** e.g. "Oct 19 – 24" or "Sep 28 – Oct 3" */
+function formatWeekRangeShort(ws) {
+  const mon = parseISO(ws), sat = addDays(mon, 5);
+  const a = `${MON[mon.getMonth()]} ${mon.getDate()}`;
+  const b = sat.getMonth() === mon.getMonth() ? `${sat.getDate()}` : `${MON[sat.getMonth()]} ${sat.getDate()}`;
+  return `${a} – ${b}`;
+}
+const dayLabel = (iso) => `${WD[parseISO(iso).getDay()].toUpperCase()} ${parseISO(iso).getDate()}`;
+
+/* ---------------- progress (port of src/lib/progress.ts) ---------------- */
+function targetStatus(target, tasks) {
+  const linked = tasks.filter((t) => t.targetId === target.id);
+  if (linked.length > 0) {
+    const doneCount = linked.filter((t) => t.done).length;
+    return { done: doneCount === linked.length, doneCount, total: linked.length };
+  }
+  return { done: target.manualDone, doneCount: target.manualDone ? 1 : 0, total: 0 };
+}
+function weekProgress(targets, tasks) {
+  if (targets.length > 0) return targets.filter((t) => targetStatus(t, tasks).done).length / targets.length;
+  if (tasks.length > 0) return tasks.filter((t) => t.done).length / tasks.length;
+  return 0;
+}
+function monthProgress(weekProgressList) {
+  if (weekProgressList.length === 0) return 0;
+  return weekProgressList.reduce((a, b) => a + b, 0) / weekProgressList.length;
+}
+
+/* ---------------- storage ---------------- */
+const KEY = 'goal-tracker-v1';
+const THEME_KEY = 'goal-tracker-theme';
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+
+let state = null;
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (raw) return JSON.parse(raw); } catch (e) { /* corrupted */ }
+  return null;
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], ...load() };
+navigator.storage?.persist?.();
+
+/* ---------------- mutations ---------------- */
+const findGoal = (id) => state.monthGoals.find((g) => g.id === id);
+const findPlan = (id) => state.weekPlans.find((p) => p.id === id);
+const findTarget = (id) => state.weekTargets.find((t) => t.id === id);
+const findTask = (id) => state.dayTasks.find((t) => t.id === id);
+
+function getOrCreateWeekPlan(monthGoalId, weekStart) {
+  let p = state.weekPlans.find((x) => x.monthGoalId === monthGoalId && x.weekStart === weekStart);
+  if (!p) { p = { id: uid(), monthGoalId, weekStart }; state.weekPlans.push(p); }
+  return p;
+}
+function addMonthGoal(month, title) {
+  const order = state.monthGoals.filter((g) => g.month === month).length;
+  state.monthGoals.push({ id: uid(), month, title, order });
+}
+function addTarget(weekPlanId, title) {
+  const order = state.weekTargets.filter((t) => t.weekPlanId === weekPlanId).length;
+  state.weekTargets.push({ id: uid(), weekPlanId, title, manualDone: false, order });
+}
+function addTask(weekPlanId, date, text) {
+  const order = state.dayTasks.filter((t) => t.weekPlanId === weekPlanId && t.date === date).length;
+  state.dayTasks.push({ id: uid(), weekPlanId, date, text, done: false, order });
+}
+function deleteMonthGoal(id) {
+  const planIds = new Set(state.weekPlans.filter((p) => p.monthGoalId === id).map((p) => p.id));
+  state.dayTasks = state.dayTasks.filter((t) => !planIds.has(t.weekPlanId));
+  state.weekTargets = state.weekTargets.filter((t) => !planIds.has(t.weekPlanId));
+  state.weekPlans = state.weekPlans.filter((p) => p.monthGoalId !== id);
+  state.monthGoals = state.monthGoals.filter((g) => g.id !== id);
+}
+function deleteTarget(id) {
+  for (const t of state.dayTasks) if (t.targetId === id) t.targetId = undefined;
+  state.weekTargets = state.weekTargets.filter((t) => t.id !== id);
+}
+function deleteTask(id) { state.dayTasks = state.dayTasks.filter((t) => t.id !== id); }
+
+/* ---------------- ui state ---------------- */
+let curWeek = weekStartOf(new Date());
+// phone layout day: today if it's Mon–Sat, else this week's Saturday
+const _todayISO = toISODate(new Date());
+const _todayWeekDays = weekDays(curWeek);
+let curDay = _todayWeekDays.includes(_todayISO) ? _todayISO : _todayWeekDays[5];
+let inlineOpen = false;
+const mqPhone = matchMedia('(max-width: 767px)');
+mqPhone.addEventListener('change', () => { if (!inlineOpen) render(); });
+let calOpen = false;
+let calViewMonth = null;
+let menuOpen = false;
+let chipOpenFor = null; // task id whose link dropdown is open
+let installEvt = null;
+let dark = localStorage.getItem(THEME_KEY) === 'dark';
+document.documentElement.classList.toggle('dark', dark);
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------------- small svg / html helpers ---------------- */
+const clamp01 = (p) => Math.max(0, Math.min(1, p));
+function bar(frac, kind) {
+  const pct = Math.round(clamp01(frac) * 100);
+  const fill = pct === 100 ? '#22c55e'
+    : kind === 'm' ? 'linear-gradient(to right,#a78bfa,#7c3aed)'
+    : 'linear-gradient(to right,#60a5fa,#2563eb)';
+  return `<div class="pbar"><div class="track"><div class="fill" style="width:${pct}%;background:${fill}"></div></div><span class="num">${pct}%</span></div>`;
+}
+function connector(p) {
+  const col = clamp01(p) >= 1 ? '#22c55e' : 'var(--conn)';
+  return `<svg class="conn" width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="22" y2="7" style="stroke:${col}" stroke-width="1.5"/><polygon points="22,3 28,7 22,11" style="fill:${col}"/></svg>`;
+}
+const LOGO = `<svg width="13" height="13" viewBox="0 0 32 32"><path d="M7 16.5l6 6L25 9" stroke="#111827" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+/** Change curWeek, keeping the same weekday index (Mon=0..Sat=5) in curDay. */
+function setWeek(ws) {
+  const idx = Math.max(0, weekDays(curWeek).indexOf(curDay));
+  curWeek = ws;
+  curDay = weekDays(ws)[idx];
+}
+function connColor(p) { return clamp01(p) >= 1 ? '#22c55e' : 'var(--conn)'; }
+function downArrow(p) {
+  const col = connColor(p);
+  return `<svg width="16" height="14" viewBox="0 0 16 14"><line x1="8" y1="0" x2="8" y2="9" style="stroke:${col}" stroke-width="1.5"/><polygon points="4,9 12,9 8,14" style="fill:${col}"/></svg>`;
+}
+
+/* ---------------- render ---------------- */
+const app = document.getElementById('app');
+
+function render() {
+  if (mqPhone.matches) renderPhone();
+  else renderDesktop();
+}
+
+function renderDesktop() {
+  const curMonth = monthOfWeek(curWeek);
+  const days = weekDays(curWeek);
+  const today = toISODate(new Date());
+  const isCurWeek = curWeek === weekStartOf(new Date());
+  const wn = isoWeekNumber(curWeek);
+  const goals = state.monthGoals.filter((g) => g.month === curMonth).sort((a, b) => a.order - b.order);
+  const rows = goals.map((g) => renderRow(g, curMonth, days, today, wn)).join('');
+
+  app.innerHTML = `
+    <header>
+      <span class="logo">${LOGO}</span>
+      <h1>Goal Tracker</h1>
+      <div class="switcher">
+        <button class="gbtn" data-action="prev-week" aria-label="Previous week">◀</button>
+        <span class="wlabel">W${wn} · ${esc(formatWeekRangeShort(curWeek))}</span>
+        <button class="gbtn" data-action="next-week" aria-label="Next week">▶</button>
+      </div>
+      ${isCurWeek ? '' : '<button class="gbtn" data-action="today">Today</button>'}
+      <div class="spacer"></div>
+      <div class="cal-wrap">
+        <button class="gbtn" data-action="cal">${formatMonth(curMonth)} ▾</button>
+        ${calOpen ? renderCal() : ''}
+      </div>
+      <button class="gbtn" data-action="theme" title="Toggle dark mode">${dark ? '☀' : '☾'}</button>
+      <div class="menu-wrap">
+        <button class="gbtn" data-action="menu" aria-label="Menu">⋯</button>
+        ${menuOpen ? `<div class="menu">
+          <button data-action="export">Export JSON</button>
+          <button data-action="import">Import JSON</button>
+          ${installEvt ? '<button data-action="install">Install app</button>' : ''}
+        </div>` : ''}
+      </div>
+    </header>
+    <main>
+      <div class="colheads">
+        <span class="mc">MONTHLY</span><span class="cn"></span>
+        <span class="wc">WEEKLY PLAN</span><span class="cn"></span>
+        <span class="dheads">${days.map((d) =>
+          `<span class="${d.slice(0, 7) !== curMonth ? 'out' : ''} ${d === today ? 'today' : ''}">${dayLabel(d)}</span>`).join('')}</span>
+      </div>
+      ${rows}
+      <button class="dashed monthly" data-action="add-goal">+ Monthly goal</button>
+    </main>`;
+}
+
+function renderCal() {
+  const weeks = weeksOfMonth(calViewMonth);
+  const today = toISODate(new Date());
+  const goals = state.monthGoals.filter((g) => g.month === calViewMonth).sort((a, b) => a.order - b.order);
+  const rows = weeks.map((ws) => {
+    const days = weekDays(ws);
+    const dots = goals.map((g) => {
+      const plan = state.weekPlans.find((p) => p.monthGoalId === g.id && p.weekStart === ws);
+      let frac = 0;
+      if (plan) {
+        frac = weekProgress(
+          state.weekTargets.filter((t) => t.weekPlanId === plan.id),
+          state.dayTasks.filter((t) => t.weekPlanId === plan.id),
+        );
+      }
+      const cls = frac >= 1 ? 'full' : frac > 0 ? 'half' : '';
+      return `<span class="dot ${cls}" title="${esc(g.title)} — ${Math.round(frac * 100)}%"></span>`;
+    }).join('');
+    return `<div class="calrow ${ws === curWeek ? 'sel' : ''}" data-action="cal-week" data-week="${ws}">
+      <span class="wk">W${isoWeekNumber(ws)}</span>
+      ${days.map((d) => `<span class="cd ${d.slice(0, 7) !== calViewMonth ? 'out' : ''} ${d === today ? 'today' : ''}">${parseISO(d).getDate()}</span>`).join('')}
+      <span class="dots">${dots}</span>
+    </div>`;
+  }).join('');
+  return `<div class="calpop">
+    <div class="calhead">
+      <button class="gbtn" data-action="cal-prev" aria-label="Previous month">◀</button>
+      <span class="cm">${formatMonth(calViewMonth)}</span>
+      <button class="gbtn" data-action="cal-next" aria-label="Next month">▶</button>
+    </div>
+    <div class="calgrid">
+      <span class="ch"></span>${['M', 'T', 'W', 'T', 'F', 'S'].map((d) => `<span class="ch">${d}</span>`).join('')}<span class="ch"></span>
+      ${rows}
+    </div>
+  </div>`;
+}
+
+function renderRow(goal, curMonth, days, today, wn) {
+  const plans = state.weekPlans.filter((p) => p.monthGoalId === goal.id);
+  const plan = plans.find((p) => p.weekStart === curWeek);
+  const targets = plan ? state.weekTargets.filter((t) => t.weekPlanId === plan.id).sort((a, b) => a.order - b.order) : [];
+  const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
+  const wFrac = plan ? weekProgress(targets, tasks) : 0;
+  const mFrac = monthProgress(
+    plans
+      .filter((p) => monthOfWeek(p.weekStart) === goal.month)
+      .map((p) => ({
+        targets: state.weekTargets.filter((t) => t.weekPlanId === p.id),
+        tasks: state.dayTasks.filter((t) => t.weekPlanId === p.id),
+      }))
+      .filter((x) => x.targets.length > 0 || x.tasks.length > 0)
+      .map((x) => weekProgress(x.targets, x.tasks)),
+  );
+
+  return `<div class="row group" data-goal="${goal.id}">
+    <div class="card mcard">
+      <span class="tag m">Monthly</span>
+      <div class="mtitle" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</div>
+      ${bar(mFrac, 'm')}
+      <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete monthly goal">✕</button>
+    </div>
+    ${connector(mFrac)}
+    <div class="card wcard">${renderWeekCard(goal, plan, targets, tasks, wFrac, wn)}</div>
+    ${connector(wFrac)}
+    <div class="days">${days.map((d) => renderCell(goal, plan, d, targets, tasks, today)).join('')}</div>
+  </div>`;
+}
+
+function renderWeekCard(goal, plan, targets, tasks, wFrac, wn) {
+  if (!plan) {
+    return `<button class="dashed" data-action="add-plan" data-goal="${goal.id}">+ Add weekly plan</button>`;
+  }
+  const items = targets.map((t) => {
+    const s = targetStatus(t, tasks);
+    const derived = s.total > 0;
+    return `<div class="target" data-tid="${t.id}">
+      <input type="checkbox" data-change="target-done" data-id="${t.id}" ${s.done ? 'checked' : ''} ${derived ? 'disabled' : ''} />
+      <span class="tname ${s.done ? 'done' : ''}" data-action="edit-target" data-id="${t.id}">${esc(t.title)}</span>
+      ${derived ? `<span class="tfrac">${s.doneCount}/${s.total}</span>` : ''}
+      <button class="del" data-action="del-target" data-id="${t.id}" title="Delete target">✕</button>
+    </div>`;
+  }).join('');
+  return `<span class="tag w">Week ${wn}</span>
+    ${bar(wFrac, 'w')}
+    ${items}
+    <button class="addlink" data-action="add-target" data-plan="${plan.id}" data-goal="${goal.id}">+ add target</button>`;
+}
+
+function renderCell(goal, plan, date, targets, tasks, today) {
+  const cellTasks = tasks.filter((t) => t.date === date).sort((a, b) => a.order - b.order);
+  const cls = ['cell'];
+  if (date === today) cls.push('today');
+  else if (date > today) cls.push('future');
+  const items = cellTasks.map((t) => taskHtml(t, targets)).join('');
+  return `<div class="${cls.join(' ')}" data-date="${date}">
+    <div class="tasks">${items}</div>
+    <button class="addlink" data-action="add-task" data-goal="${goal.id}" data-plan="${plan ? plan.id : ''}" data-date="${date}">+</button>
+  </div>`;
+}
+
+function taskHtml(t, targets) {
+  const linked = targets.find((x) => x.id === t.targetId);
+  const chip = `<div class="chip-wrap">
+    <button class="chip ${linked ? 'linked' : ''}" data-action="chip" data-id="${t.id}" title="${linked ? 'Linked to: ' + esc(linked.title) : 'Link to a weekly target'}">⚑</button>
+    ${chipOpenFor === t.id ? `<div class="dropdown">
+      <button data-action="chip-pick" data-task="${t.id}" data-target="">none</button>
+      ${targets.map((x) => `<button data-action="chip-pick" data-task="${t.id}" data-target="${x.id}" class="${x.id === t.targetId ? 'sel' : ''}">${esc(x.title)}</button>`).join('')}
+    </div>` : ''}
+  </div>`;
+  return `<div class="task" data-tid="${t.targetId || ''}">
+    <input type="checkbox" data-change="task-done" data-id="${t.id}" ${t.done ? 'checked' : ''} />
+    <span class="tmain">
+      <span class="txt ${t.done ? 'done' : ''}" data-action="edit-task" data-id="${t.id}">${esc(t.text)}</span>
+      ${linked ? `<div class="tlink">⚑ ${esc(linked.title)}</div>` : ''}
+    </span>
+    <span class="tools">${chip}<button class="del" data-action="del-task" data-id="${t.id}" title="Delete task">✕</button></span>
+  </div>`;
+}
+
+/* ---------------- phone layout ---------------- */
+function renderPhone() {
+  const curMonth = monthOfWeek(curWeek);
+  const days = weekDays(curWeek);
+  const today = toISODate(new Date());
+  const isCurWeek = curWeek === weekStartOf(new Date());
+  const isToday = isCurWeek && curDay === today;
+  const wn = isoWeekNumber(curWeek);
+  const goals = state.monthGoals.filter((g) => g.month === curMonth).sort((a, b) => a.order - b.order);
+  const goalIds = new Set(goals.map((g) => g.id));
+  const planIds = new Set(state.weekPlans.filter((p) => goalIds.has(p.monthGoalId) && p.weekStart === curWeek).map((p) => p.id));
+  const busyDays = new Set(state.dayTasks.filter((t) => planIds.has(t.weekPlanId)).map((t) => t.date));
+
+  const chips = days.map((d) => `<button class="dchip ${d === curDay ? 'sel' : ''} ${d === today ? 'today' : ''}" data-action="set-day" data-date="${d}">
+      <span class="dn">${WD[parseISO(d).getDay()].toUpperCase()}</span>
+      <span class="dd">${parseISO(d).getDate()}</span>
+      ${busyDays.has(d) ? '<span class="ddot"></span>' : ''}
+    </button>`).join('');
+
+  const cards = goals.map((g) => renderPhoneCard(g, curDay, today, wn)).join('');
+
+  app.innerHTML = `
+    <header>
+      <span class="logo">${LOGO}</span>
+      <div class="switcher">
+        <button class="gbtn" data-action="prev-week" aria-label="Previous week">◀</button>
+        <span class="wlabel">W${wn} · ${esc(formatWeekRangeShort(curWeek))}</span>
+        <button class="gbtn" data-action="next-week" aria-label="Next week">▶</button>
+      </div>
+      ${isToday ? '' : '<button class="gbtn" data-action="today">Today</button>'}
+      <div class="menu-wrap">
+        <button class="gbtn" data-action="menu" aria-label="Menu">⋯</button>
+        ${menuOpen ? `<div class="menu">
+          <button data-action="cal">Month calendar…</button>
+          <button data-action="theme">${dark ? 'Light mode' : 'Dark mode'}</button>
+          <button data-action="export">Export JSON</button>
+          <button data-action="import">Import JSON</button>
+          ${installEvt ? '<button data-action="install">Install app</button>' : ''}
+        </div>` : ''}
+      </div>
+      <div class="daybar">
+        <button class="gbtn dnav" data-action="prev-day" aria-label="Previous day">‹</button>
+        ${chips}
+        <button class="gbtn dnav" data-action="next-day" aria-label="Next day">›</button>
+      </div>
+      ${calOpen ? `<div class="cal-wrap"><div class="backdrop" data-action="cal-close"></div>${renderCal()}</div>` : ''}
+    </header>
+    <main>
+      ${cards}
+      <button class="dashed monthly" data-action="add-goal">+ Monthly goal</button>
+    </main>`;
+}
+
+function renderPhoneCard(goal, day, today, wn) {
+  const plans = state.weekPlans.filter((p) => p.monthGoalId === goal.id);
+  const plan = plans.find((p) => p.weekStart === curWeek);
+  const targets = plan ? state.weekTargets.filter((t) => t.weekPlanId === plan.id).sort((a, b) => a.order - b.order) : [];
+  const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
+  const dayTasks = tasks.filter((t) => t.date === day).sort((a, b) => a.order - b.order);
+  const wFrac = plan ? weekProgress(targets, tasks) : 0;
+  const mFrac = monthProgress(
+    plans
+      .filter((p) => monthOfWeek(p.weekStart) === goal.month)
+      .map((p) => ({
+        targets: state.weekTargets.filter((t) => t.weekPlanId === p.id),
+        tasks: state.dayTasks.filter((t) => t.weekPlanId === p.id),
+      }))
+      .filter((x) => x.targets.length > 0 || x.tasks.length > 0)
+      .map((x) => weekProgress(x.targets, x.tasks)),
+  );
+
+  const weekPart = plan
+    ? `<span class="tag w">Week ${wn}</span>
+       ${bar(wFrac, 'w')}
+       ${targets.map((t) => {
+         const s = targetStatus(t, tasks);
+         const derived = s.total > 0;
+         return `<div class="target" data-tid="${t.id}">
+           <input type="checkbox" data-change="target-done" data-id="${t.id}" ${s.done ? 'checked' : ''} ${derived ? 'disabled' : ''} />
+           <span class="tname ${s.done ? 'done' : ''}" data-action="edit-target" data-id="${t.id}">${esc(t.title)}</span>
+           ${derived ? `<span class="tfrac">${s.doneCount}/${s.total}</span>` : ''}
+           <button class="del" data-action="del-target" data-id="${t.id}" title="Delete target">✕</button>
+         </div>`;
+       }).join('')}
+       <button class="addlink" data-action="add-target" data-plan="${plan.id}" data-goal="${goal.id}">+ add target</button>`
+    : `<button class="dashed" data-action="add-plan" data-goal="${goal.id}">+ Add weekly plan</button>`;
+
+  return `<div class="pcard group" data-goal="${goal.id}">
+    <div class="psec">
+      <span class="tag m">Monthly</span>
+      <div class="mtitle" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</div>
+      ${bar(mFrac, 'm')}
+      <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete monthly goal">✕</button>
+    </div>
+    <div class="pconn">${downArrow(mFrac)}</div>
+    <div class="psec">${weekPart}</div>
+    <div class="pconn">${downArrow(wFrac)}</div>
+    <div class="psec">
+      <div class="pday ${day === today ? 'today' : ''}">${WD[parseISO(day).getDay()].toUpperCase()} ${parseISO(day).getDate()}</div>
+      ${dayTasks.map((t) => taskHtml(t, targets)).join('')}
+      <button class="addlink wide" data-action="add-task" data-goal="${goal.id}" data-plan="${plan ? plan.id : ''}" data-date="${day}">+ add task</button>
+    </div>
+  </div>`;
+}
+
+/* ---------------- inline editing ---------------- */
+function openInline(el, initial, onSubmit, onCancel) {
+  const input = document.createElement('input');
+  input.className = 'inline';
+  input.value = initial;
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+  inlineOpen = true;
+  let done = false;
+  const finish = (fn) => { inlineOpen = false; fn(); };
+  const commit = () => { if (!done) { done = true; const v = input.value.trim(); if (v) finish(() => onSubmit(v)); else finish(onCancel || render); } };
+  const cancel = () => { if (!done) { done = true; finish(onCancel || render); } };
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') commit();
+    else if (e.key === 'Escape') cancel();
+  });
+  input.addEventListener('blur', commit);
+}
+
+/* ---------------- events ---------------- */
+app.addEventListener('click', (e) => {
+  // outside-click closes menu / chip dropdown / calendar (flags only; render below once)
+  let closed = false;
+  if (!e.target.closest('.menu-wrap') && menuOpen) { menuOpen = false; closed = true; }
+  if (!e.target.closest('.chip-wrap') && chipOpenFor) { chipOpenFor = null; closed = true; }
+  if (!e.target.closest('.cal-wrap') && calOpen) { calOpen = false; closed = true; }
+  const el = e.target.closest('[data-action]');
+  if (!el) { if (closed) render(); return; }
+  const a = el.dataset.action;
+  const id = el.dataset.id;
+  // if a close happened, `el` is stale after render(); re-query it for DOM-level ops
+  const sel = `[data-action="${a}"]` + ['id', 'goal', 'plan', 'date', 'task', 'target', 'week']
+    .filter((k) => el.dataset[k])
+    .map((k) => `[data-${k}="${CSS.escape(el.dataset[k])}"]`)
+    .join('');
+  const withEl = (fn) => {
+    if (closed) { render(); fn(app.querySelector(sel)); }
+    else fn(el);
+  };
+  const curMonth = monthOfWeek(curWeek);
+
+  switch (a) {
+    case 'prev-week': setWeek(toISODate(addDays(parseISO(curWeek), -7))); render(); break;
+    case 'next-week': setWeek(toISODate(addDays(parseISO(curWeek), 7))); render(); break;
+    case 'today': {
+      curWeek = weekStartOf(new Date());
+      const wd = weekDays(curWeek), t = toISODate(new Date());
+      curDay = wd.includes(t) ? t : wd[5];
+      render(); break;
+    }
+    case 'prev-day': case 'next-day': {
+      const wd = weekDays(curWeek);
+      const i = wd.indexOf(curDay);
+      if (a === 'next-day') {
+        if (i < 5) curDay = wd[i + 1];
+        else { curWeek = toISODate(addDays(parseISO(curWeek), 7)); curDay = weekDays(curWeek)[0]; }
+      } else {
+        if (i > 0) curDay = wd[i - 1];
+        else { curWeek = toISODate(addDays(parseISO(curWeek), -7)); curDay = weekDays(curWeek)[5]; }
+      }
+      render(); break;
+    }
+    case 'set-day': curDay = el.dataset.date; render(); break;
+    case 'cal':
+      calOpen = !calOpen;
+      menuOpen = false;
+      if (calOpen) calViewMonth = curMonth;
+      render(); break;
+    case 'cal-close': calOpen = false; render(); break;
+    case 'cal-prev': calViewMonth = shiftMonth(calViewMonth, -1); render(); break;
+    case 'cal-next': calViewMonth = shiftMonth(calViewMonth, 1); render(); break;
+    case 'cal-week': setWeek(el.dataset.week); calOpen = false; render(); break;
+    case 'theme':
+      dark = !dark;
+      document.documentElement.classList.toggle('dark', dark);
+      localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
+      render(); break;
+    case 'menu': menuOpen = !menuOpen; render(); break;
+    case 'export': doExport(); menuOpen = false; render(); break;
+    case 'import': document.getElementById('importFile').click(); break;
+    case 'install':
+      if (installEvt) { installEvt.prompt(); installEvt = null; }
+      menuOpen = false; render(); break;
+    case 'add-goal':
+      withEl((el2) => el2 && openInline(el2, '', (v) => { addMonthGoal(curMonth, v); save(); render(); }));
+      break;
+    case 'edit-goal':
+      withEl((el2) => el2 && openInline(el2, findGoal(id).title, (v) => { findGoal(id).title = v; save(); render(); }));
+      break;
+    case 'del-goal': {
+      const g = findGoal(id);
+      if (confirm(`Delete "${g.title}" and all its plans, targets and tasks?`)) {
+        deleteMonthGoal(id); save(); render();
+      }
+      break;
+    }
+    case 'add-plan': getOrCreateWeekPlan(el.dataset.goal, curWeek); save(); render(); break;
+    case 'add-target':
+      withEl((el2) => el2 && openInline(el2, '', (v) => {
+        const plan = getOrCreateWeekPlan(el.dataset.goal, curWeek);
+        addTarget(plan.id, v); save(); render();
+      }));
+      break;
+    case 'edit-target':
+      withEl((el2) => el2 && openInline(el2, findTarget(id).title, (v) => { findTarget(id).title = v; save(); render(); }));
+      break;
+    case 'del-target':
+      if (confirm('Delete this weekly target? Linked tasks will be unlinked.')) {
+        deleteTarget(id); save(); render();
+      }
+      break;
+    case 'add-task':
+      withEl((el2) => el2 && openInline(el2, '', (v) => {
+        const plan = el.dataset.plan ? findPlan(el.dataset.plan) : getOrCreateWeekPlan(el.dataset.goal, curWeek);
+        addTask(plan.id, el.dataset.date, v); save(); render();
+      }));
+      break;
+    case 'edit-task':
+      withEl((el2) => el2 && openInline(el2, findTask(id).text, (v) => { findTask(id).text = v; save(); render(); }));
+      break;
+    case 'del-task': deleteTask(id); save(); render(); break;
+    case 'chip': chipOpenFor = chipOpenFor === id ? null : id; render(); break;
+    case 'chip-pick': {
+      const t = findTask(el.dataset.task);
+      if (t) { t.targetId = el.dataset.target || undefined; save(); }
+      chipOpenFor = null; render(); break;
+    }
+  }
+});
+
+app.addEventListener('change', (e) => {
+  const el = e.target.closest('[data-change]');
+  if (!el) return;
+  const t = el.dataset.change === 'task-done' ? findTask(el.dataset.id) : findTarget(el.dataset.id);
+  if (!t) return;
+  if (el.dataset.change === 'task-done') t.done = el.checked;
+  else t.manualDone = el.checked;
+  save(); render();
+});
+
+// Esc closes popover / menu / chip dropdown.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && (calOpen || menuOpen || chipOpenFor)) {
+    calOpen = false; menuOpen = false; chipOpenFor = null; render();
+  }
+});
+
+// Swipe left/right on the board moves to the next/previous day (phone only).
+let swipeX = 0, swipeY = 0;
+app.addEventListener('touchstart', (e) => {
+  if (inlineOpen) return;
+  const t = e.touches[0];
+  swipeX = t.clientX; swipeY = t.clientY;
+}, { passive: true });
+app.addEventListener('touchend', (e) => {
+  if (inlineOpen || !mqPhone.matches) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - swipeX, dy = t.clientY - swipeY;
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+    const wd = weekDays(curWeek);
+    const i = wd.indexOf(curDay);
+    if (dx < 0) {
+      if (i < 5) curDay = wd[i + 1];
+      else { curWeek = toISODate(addDays(parseISO(curWeek), 7)); curDay = weekDays(curWeek)[0]; }
+    } else {
+      if (i > 0) curDay = wd[i - 1];
+      else { curWeek = toISODate(addDays(parseISO(curWeek), -7)); curDay = weekDays(curWeek)[5]; }
+    }
+    render();
+  }
+}, { passive: true });
+
+// Hover a target -> highlight its linked tasks (no re-render).
+app.addEventListener('mouseover', (e) => {
+  const t = e.target.closest('.target[data-tid]');
+  if (!t) return;
+  app.querySelectorAll(`.task[data-tid="${CSS.escape(t.dataset.tid)}"]`).forEach((n) => n.classList.add('hl'));
+});
+app.addEventListener('mouseout', (e) => {
+  const t = e.target.closest('.target[data-tid]');
+  if (!t) return;
+  app.querySelectorAll(`.task[data-tid="${CSS.escape(t.dataset.tid)}"]`).forEach((n) => n.classList.remove('hl'));
+});
+
+/* ---------------- export / import ---------------- */
+function doExport() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'goal-tracker-export.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('importFile').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (confirm('Importing will replace ALL current data. Continue?')) {
+      state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], ...data };
+      menuOpen = false;
+      save(); render();
+    }
+  } catch (err) {
+    alert('Could not read that file: ' + err.message);
+  }
+});
+
+/* ---------------- PWA: only over http(s), never on file:// ---------------- */
+if (location.protocol === 'http:' || location.protocol === 'https:') {
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = 'manifest.webmanifest';
+  document.head.appendChild(link);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    installEvt = e;
+    render();
+  });
+  window.addEventListener('appinstalled', () => { installEvt = null; render(); });
+}
+
+render();
+</script>
+</body>
+</html>
