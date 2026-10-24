@@ -24,6 +24,7 @@
     --pop-shadow: 0 4px 12px rgba(0,0,0,.08);
     --dot-o: #d1d5db; --dot-h: #9ca3af;
     --cal-sel: #f9fafb; --cal-hov: #f9fafb;
+    --h1: #9be9a8; --h2: #40c463; --h3: #30a14e; --h4: #216e39;
   }
   html.dark {
     --bg: #0b0f19; --header-bg: #0b0f19; --card: #111827; --fill: #0f1523;
@@ -40,6 +41,7 @@
     --pop-shadow: 0 4px 12px rgba(0,0,0,.4);
     --dot-o: #374151; --dot-h: #6b7280;
     --cal-sel: #0f1523; --cal-hov: #0f1523;
+    --h1: #0e4429; --h2: #006d32; --h3: #26a641; --h4: #39d353;
   }
   * { box-sizing: border-box; }
   body { margin: 0; font: 14px/1.45 var(--sans); background: var(--bg); color: var(--text); }
@@ -72,8 +74,21 @@
   .calrow > span { padding: 3px 0; text-align: center; font-size: 12px; }
   .calrow .wk { font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: left; padding-left: 4px; }
   .calrow .cd { color: var(--text2); border-radius: 4px; }
-  .calrow .cd.out { color: var(--muted); opacity: .55; }
-  .calrow .cd.today { font-weight: 700; color: var(--today-head); box-shadow: inset 0 0 0 1.5px var(--today-head); }
+  .calrow .cd.out { opacity: .55; }
+  .calrow .cd.today { font-weight: 700; color: var(--today-head); box-shadow: 0 0 0 2px var(--today-head); }
+  .calrow .cd.h1 { background: var(--h1); }
+  .calrow .cd.h2 { background: var(--h2); }
+  .calrow .cd.h3 { background: var(--h3); color: #ffffff; }
+  .calrow .cd.h4 { background: var(--h4); color: #ffffff; }
+  html.dark .calrow .cd.h3, html.dark .calrow .cd.h4 { color: #111827; }
+  html.dark .calrow .cd.h1, html.dark .calrow .cd.h2 { color: #ffffff; }
+  .callegend { display: flex; justify-content: flex-end; align-items: center; gap: 3px; margin-top: 8px; font-size: 11px; color: var(--muted); }
+  .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .sw.h0 { border: 1px solid var(--dot-o); }
+  .sw.h1 { background: var(--h1); }
+  .sw.h2 { background: var(--h2); }
+  .sw.h3 { background: var(--h3); }
+  .sw.h4 { background: var(--h4); }
   .calrow .dots { display: flex; gap: 4px; padding-left: 8px; }
   .calrow:hover > span { background: var(--cal-hov); }
   .calrow.sel > span { background: var(--cal-sel); font-weight: 600; }
@@ -435,6 +450,32 @@ function renderCal() {
   const weeks = weeksOfMonth(calViewMonth);
   const today = toISODate(new Date());
   const goals = state.monthGoals.filter((g) => g.month === calViewMonth).sort((a, b) => a.order - b.order);
+  // per-date task counts + done-by-goal breakdown, single pass over dayTasks
+  const goalTitleByPlan = new Map();
+  for (const p of state.weekPlans) {
+    const g = state.monthGoals.find((x) => x.id === p.monthGoalId);
+    if (g) goalTitleByPlan.set(p.id, g.title);
+  }
+  const counts = new Map(); // date -> {total, done, byGoal: Map<title, doneCount>}
+  for (const t of state.dayTasks) {
+    let e = counts.get(t.date);
+    if (!e) { e = { total: 0, done: 0, byGoal: new Map() }; counts.set(t.date, e); }
+    e.total++;
+    if (t.done) {
+      e.done++;
+      const title = goalTitleByPlan.get(t.weekPlanId) || '';
+      e.byGoal.set(title, (e.byGoal.get(title) || 0) + 1);
+    }
+  }
+  const cellHtml = (d) => {
+    const e = counts.get(d) || { total: 0, done: 0, byGoal: new Map() };
+    const lvl = e.done === 0 ? 0 : e.done === 1 ? 1 : e.done === 2 ? 2 : e.done <= 4 ? 3 : 4;
+    const dd = parseISO(d);
+    let tip = `${WD[dd.getDay()]} ${dd.getDate()} ${MON[dd.getMonth()]} · `;
+    tip += e.total === 0 ? 'no tasks' : `${e.done} of ${e.total} done`;
+    if (e.done > 0) tip += ' — ' + [...e.byGoal].map(([t2, n]) => `${t2}: ${n}`).join(', ');
+    return `<span class="cd h${lvl} ${d.slice(0, 7) !== calViewMonth ? 'out' : ''} ${d === today ? 'today' : ''}" title="${esc(tip)}">${dd.getDate()}</span>`;
+  };
   const rows = weeks.map((ws) => {
     const days = weekDays(ws);
     const dots = goals.map((g) => {
@@ -451,7 +492,7 @@ function renderCal() {
     }).join('');
     return `<div class="calrow ${ws === curWeek ? 'sel' : ''}" data-action="cal-week" data-week="${ws}">
       <span class="wk">W${isoWeekNumber(ws)}</span>
-      ${days.map((d) => `<span class="cd ${d.slice(0, 7) !== calViewMonth ? 'out' : ''} ${d === today ? 'today' : ''}">${parseISO(d).getDate()}</span>`).join('')}
+      ${days.map(cellHtml).join('')}
       <span class="dots">${dots}</span>
     </div>`;
   }).join('');
@@ -465,6 +506,7 @@ function renderCal() {
       <span class="ch"></span>${['M', 'T', 'W', 'T', 'F', 'S'].map((d) => `<span class="ch">${d}</span>`).join('')}<span class="ch"></span>
       ${rows}
     </div>
+    <div class="callegend">Less <span class="sw h0"></span><span class="sw h1"></span><span class="sw h2"></span><span class="sw h3"></span><span class="sw h4"></span> More</div>
   </div>`;
 }
 
