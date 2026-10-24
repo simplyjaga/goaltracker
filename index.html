@@ -157,7 +157,6 @@
   .addlink:hover { color: var(--text2); }
   .dashed { width: 100%; border: 1px dashed var(--border-h); border-radius: 6px; background: none; padding: 14px 0; font-size: 12px; color: var(--muted); cursor: pointer; font-family: var(--sans); }
   .dashed:hover { background: var(--fill); color: var(--text2); }
-  .dashed.monthly { width: 224px; padding: 12px 0; font-size: 13px; }
 
   .days { flex: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: stretch; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
   .cell { display: flex; flex-direction: column; min-height: 72px; padding: 4px; border-left: 1px solid var(--border); }
@@ -223,7 +222,6 @@
     header .gbtn { padding: 0 7px; }
     .dchip { flex: 1 1 0; min-width: 0; padding: 3px 0 4px; }
     main { padding: 12px; }
-    .dashed.monthly { width: 100%; }
     .calpop { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto; max-width: 100vw; border-radius: 12px 12px 0 0; z-index: 50; padding-bottom: 18px; }
     .menu, .dropdown { max-width: calc(100vw - 24px); }
     /* touch: always-visible tools, >=32px tap targets, no iOS zoom on inputs */
@@ -359,7 +357,9 @@ function addMonthGoal(month, title, categoryId) {
 function addCategory(name) {
   const used = new Set(state.categories.map((c) => c.color));
   const color = PALETTE.find((c) => !used.has(c)) || PALETTE[0];
-  state.categories.push({ id: uid(), name, color, order: state.categories.length, collapsed: false });
+  const id = uid();
+  state.categories.push({ id, name, color, order: state.categories.length, collapsed: false });
+  return id;
 }
 function deleteCategory(id) {
   for (const g of state.monthGoals) if (g.categoryId === id) g.categoryId = undefined;
@@ -526,6 +526,7 @@ function renderDesktop() {
       <div class="menu-wrap">
         <button class="gbtn" data-action="menu" aria-label="Menu">⋯</button>
         ${menuOpen ? `<div class="menu">
+          <button data-action="add-cat">Add category</button>
           <button data-action="export">Export JSON</button>
           <button data-action="import">Import JSON</button>
           ${installEvt ? '<button data-action="install">Install app</button>' : ''}
@@ -540,7 +541,6 @@ function renderDesktop() {
           `<span class="${d.slice(0, 7) !== curMonth ? 'out' : ''} ${d === today ? 'today' : ''}">${dayLabel(d)}</span>`).join('')}</span>
       </div>
       ${rows}
-      <button class="dashed monthly" data-action="add-cat">+ Category</button>
     </main>`;
 }
 
@@ -732,6 +732,7 @@ function renderPhone() {
         ${menuOpen ? `<div class="menu">
           <button data-action="cal">Month calendar…</button>
           <button data-action="theme">${dark ? 'Light mode' : 'Dark mode'}</button>
+          <button data-action="add-cat">Add category</button>
           <button data-action="export">Export JSON</button>
           <button data-action="import">Import JSON</button>
           ${installEvt ? '<button data-action="install">Install app</button>' : ''}
@@ -746,7 +747,6 @@ function renderPhone() {
     </header>
     <main>
       ${cards}
-      <button class="dashed monthly" data-action="add-cat">+ Category</button>
     </main>`;
 }
 
@@ -898,9 +898,18 @@ app.addEventListener('click', (e) => {
     case 'cat-add-goal':
       withEl((el2) => el2 && openInline(el2, '', (v) => { addMonthGoal(curMonth, v, el.dataset.id || undefined); save(); render(); }));
       break;
-    case 'add-cat':
-      withEl((el2) => el2 && openInline(el2, '', (v) => { addCategory(v); save(); render(); }));
+    case 'add-cat': {
+      const cid = addCategory('New category');
+      menuOpen = false; save(); render();
+      const nameEl = app.querySelector(`[data-action="cat-rename"][data-id="${cid}"]`);
+      if (nameEl) {
+        nameEl.scrollIntoView({ block: 'center' });
+        openInline(nameEl, 'New category',
+          (v) => { findCat(cid).name = v; save(); render(); },
+          () => { deleteCategory(cid); save(); render(); });
+      }
       break;
+    }
     case 'move-goal': moveFor = moveFor === id ? null : id; render(); break;
     case 'move-pick': {
       const g = findGoal(id);
