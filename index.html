@@ -73,9 +73,9 @@
   .calrow { display: contents; }
   .calrow > span { padding: 3px 0; text-align: center; font-size: 12px; }
   .calrow .wk { font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: left; padding-left: 4px; }
-  .calrow .cd { color: var(--text2); border-radius: 4px; }
+  .calrow .cd { color: var(--text2); border-radius: 4px; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; }
   .calrow .cd.out { opacity: .55; }
-  .calrow .cd.today { font-weight: 700; color: var(--today-head); box-shadow: 0 0 0 2px var(--today-head); }
+  .calrow .cd.today { font-weight: 700; color: var(--today-head); box-shadow: inset 0 0 0 2px var(--today-head); }
   .calrow .cd.h1 { background: var(--h1); }
   .calrow .cd.h2 { background: var(--h2); }
   .calrow .cd.h3 { background: var(--h3); color: #ffffff; }
@@ -96,6 +96,7 @@
   .dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--dot-o); display: inline-block; }
   .dot.half { background: var(--dot-h); border-color: var(--dot-h); }
   .dot.full { background: var(--ok); border-color: var(--ok); }
+  .dashed.category { width: 224px; padding: 12px 0; font-size: 13px; }
 
   /* ---------- board ---------- */
   main { padding: 16px; }
@@ -107,6 +108,22 @@
   .colheads .dheads span { padding-left: 8px; font-family: var(--mono); font-weight: 400; }
   .colheads .dheads span.out { opacity: .55; }
   .colheads .dheads span.today { color: var(--today-head); font-weight: 700; }
+
+  /* ---------- category sections ---------- */
+  .cathead { display: flex; align-items: center; gap: 8px; padding: 6px 0; margin-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .catdot-wrap { position: relative; display: inline-flex; }
+  .catdot { width: 10px; height: 10px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; flex-shrink: 0; }
+  .catname { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; cursor: text; min-width: 0; overflow-wrap: break-word; }
+  .catmeta { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+  .cathead button { white-space: nowrap; flex-shrink: 0; }
+  .catsp { flex: 1; }
+  .cathead .catdel { position: static; }
+  .palette { position: absolute; left: 0; top: 16px; z-index: 45; display: grid; grid-template-columns: repeat(4, 18px); gap: 5px; padding: 6px; background: var(--pop); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--pop-shadow); }
+  .palette button { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0,0,0,.12); cursor: pointer; padding: 0; }
+  .mtools { position: absolute; right: 4px; top: 4px; display: flex; align-items: center; gap: 2px; }
+  .mtools .del { position: static; }
+  .mv-wrap { position: relative; }
+  .mvbtn { font-size: 11px; }
 
   .row { display: flex; align-items: stretch; margin-bottom: 16px; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; align-self: flex-start; }
@@ -307,7 +324,22 @@ function load() {
 }
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 
+/* ---------------- categories ---------------- */
+const PALETTE = ['#4f46e5', '#2563eb', '#0891b2', '#059669', '#ca8a04', '#ea580c', '#db2777', '#7c3aed'];
+const DEFAULT_CATS = [
+  ['GATE Prep', '#4f46e5'],
+  ['Core Engineering & Projects', '#ea580c'],
+  ['Interview Prep', '#db2777'],
+];
+function defaultCategories() {
+  return DEFAULT_CATS.map(([name, color], i) => ({ id: uid(), name, color, order: i, collapsed: false }));
+}
+function ensureCategories() {
+  if (!Array.isArray(state.categories)) { state.categories = defaultCategories(); save(); }
+}
+
 state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], ...load() };
+ensureCategories();
 navigator.storage?.persist?.();
 
 /* ---------------- mutations ---------------- */
@@ -315,15 +347,33 @@ const findGoal = (id) => state.monthGoals.find((g) => g.id === id);
 const findPlan = (id) => state.weekPlans.find((p) => p.id === id);
 const findTarget = (id) => state.weekTargets.find((t) => t.id === id);
 const findTask = (id) => state.dayTasks.find((t) => t.id === id);
+const findCat = (id) => state.categories.find((c) => c.id === id);
+/** The goal's category, or undefined -> renders under "Uncategorized". */
+const catOf = (goal) => state.categories.find((c) => c.id === goal.categoryId);
+const catColorOf = (goal) => (catOf(goal) || {}).color || 'var(--border-h)';
+
+function addMonthGoal(month, title, categoryId) {
+  const order = state.monthGoals.filter((g) => g.month === month && g.categoryId === categoryId).length;
+  state.monthGoals.push({ id: uid(), month, title, order, categoryId });
+}
+function addCategory(name) {
+  const used = new Set(state.categories.map((c) => c.color));
+  const color = PALETTE.find((c) => !used.has(c)) || PALETTE[0];
+  state.categories.push({ id: uid(), name, color, order: state.categories.length, collapsed: false });
+}
+function deleteCategory(id) {
+  for (const g of state.monthGoals) if (g.categoryId === id) g.categoryId = undefined;
+  state.categories = state.categories.filter((c) => c.id !== id);
+}
+function moveGoalToCategory(goal, categoryId) {
+  goal.categoryId = categoryId;
+  goal.order = state.monthGoals.filter((g) => g.month === goal.month && g.categoryId === categoryId && g.id !== goal.id).length;
+}
 
 function getOrCreateWeekPlan(monthGoalId, weekStart) {
   let p = state.weekPlans.find((x) => x.monthGoalId === monthGoalId && x.weekStart === weekStart);
   if (!p) { p = { id: uid(), monthGoalId, weekStart }; state.weekPlans.push(p); }
   return p;
-}
-function addMonthGoal(month, title) {
-  const order = state.monthGoals.filter((g) => g.month === month).length;
-  state.monthGoals.push({ id: uid(), month, title, order });
 }
 function addTarget(weekPlanId, title) {
   const order = state.weekTargets.filter((t) => t.weekPlanId === weekPlanId).length;
@@ -359,6 +409,8 @@ let calOpen = false;
 let calViewMonth = null;
 let menuOpen = false;
 let chipOpenFor = null; // task id whose link dropdown is open
+let paletteFor = null; // category id whose colour palette is open
+let moveFor = null; // goal id whose move-to-category dropdown is open
 let installEvt = null;
 let dark = localStorage.getItem(THEME_KEY) === 'dark';
 document.documentElement.classList.toggle('dark', dark);
@@ -386,6 +438,51 @@ function setWeek(ws) {
   curWeek = ws;
   curDay = weekDays(ws)[idx];
 }
+/** monthProgress of one goal: its in-month, non-empty week plans. */
+function goalMonthFrac(goal) {
+  const plans = state.weekPlans.filter((p) => p.monthGoalId === goal.id);
+  return monthProgress(
+    plans
+      .filter((p) => monthOfWeek(p.weekStart) === goal.month)
+      .map((p) => ({
+        targets: state.weekTargets.filter((t) => t.weekPlanId === p.id),
+        tasks: state.dayTasks.filter((t) => t.weekPlanId === p.id),
+      }))
+      .filter((x) => x.targets.length > 0 || x.tasks.length > 0)
+      .map((x) => weekProgress(x.targets, x.tasks)),
+  );
+}
+/** Board sections: one per category in order + "Uncategorized" when non-empty. */
+function catSections(month) {
+  const goals = state.monthGoals.filter((g) => g.month === month).sort((a, b) => a.order - b.order);
+  const secs = state.categories
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .map((c) => ({ cat: c, goals: goals.filter((g) => g.categoryId === c.id) }));
+  const uncat = goals.filter((g) => !catOf(g));
+  if (uncat.length) secs.push({ cat: null, goals: uncat });
+  return secs;
+}
+/** Section header for a category (or Uncategorized when cat is null). */
+function catHeadHtml(cat, goals) {
+  const id = cat ? cat.id : '';
+  const name = cat ? cat.name : 'Uncategorized';
+  const color = cat ? cat.color : 'var(--muted)';
+  const avg = goals.length ? Math.round(monthProgress(goals.map(goalMonthFrac)) * 100) : null;
+  const collapsed = cat ? cat.collapsed : false;
+  return `<div class="cathead group" data-cat="${id}">
+    <span class="catdot-wrap"><button class="catdot" style="background:${color}" data-action="cat-pal" data-id="${id}" title="Category colour"></button>
+      ${cat && paletteFor === cat.id ? `<div class="palette">${PALETTE.map((c) =>
+        `<button style="background:${c}" data-action="cat-color" data-id="${cat.id}" data-color="${c}" title="${c}"></button>`).join('')}</div>` : ''}
+    </span>
+    <span class="catname" style="color:${color}" ${cat ? `data-action="cat-rename" data-id="${cat.id}"` : ''}>${esc(name)}</span>
+    <span class="catmeta">${goals.length} goal${goals.length === 1 ? '' : 's'}${avg !== null ? ` · ${avg}%` : ''}</span>
+    <span class="catsp"></span>
+    <button class="addlink" data-action="cat-add-goal" data-id="${id}">+ goal</button>
+    ${cat ? `<button class="addlink" data-action="cat-collapse" data-id="${cat.id}" title="${collapsed ? 'Expand' : 'Collapse'}">${collapsed ? '▸' : '▾'}</button>` : ''}
+    ${cat ? `<button class="del catdel" data-action="cat-del" data-id="${cat.id}" title="Delete category">✕</button>` : ''}
+  </div>`;
+}
 function connColor(p) { return clamp01(p) >= 1 ? '#22c55e' : 'var(--conn)'; }
 function downArrow(p) {
   const col = connColor(p);
@@ -406,8 +503,9 @@ function renderDesktop() {
   const today = toISODate(new Date());
   const isCurWeek = curWeek === weekStartOf(new Date());
   const wn = isoWeekNumber(curWeek);
-  const goals = state.monthGoals.filter((g) => g.month === curMonth).sort((a, b) => a.order - b.order);
-  const rows = goals.map((g) => renderRow(g, curMonth, days, today, wn)).join('');
+  const rows = catSections(curMonth)
+    .map((s) => catHeadHtml(s.cat, s.goals) + (s.cat && s.cat.collapsed ? '' : s.goals.map((g) => renderRow(g, curMonth, days, today, wn)).join('')))
+    .join('');
 
   app.innerHTML = `
     <header>
@@ -442,14 +540,17 @@ function renderDesktop() {
           `<span class="${d.slice(0, 7) !== curMonth ? 'out' : ''} ${d === today ? 'today' : ''}">${dayLabel(d)}</span>`).join('')}</span>
       </div>
       ${rows}
-      <button class="dashed monthly" data-action="add-goal">+ Monthly goal</button>
+      <button class="dashed monthly" data-action="add-cat">+ Category</button>
     </main>`;
 }
 
 function renderCal() {
   const weeks = weeksOfMonth(calViewMonth);
   const today = toISODate(new Date());
-  const goals = state.monthGoals.filter((g) => g.month === calViewMonth).sort((a, b) => a.order - b.order);
+  const catOrd = new Map(state.categories.map((c) => [c.id, c.order]));
+  const goals = state.monthGoals
+    .filter((g) => g.month === calViewMonth)
+    .sort((a, b) => (catOrd.get(a.categoryId) ?? 99) - (catOrd.get(b.categoryId) ?? 99) || a.order - b.order);
   // per-date task counts + done-by-goal breakdown, single pass over dayTasks
   const goalTitleByPlan = new Map();
   for (const p of state.weekPlans) {
@@ -487,8 +588,9 @@ function renderCal() {
           state.dayTasks.filter((t) => t.weekPlanId === plan.id),
         );
       }
-      const cls = frac >= 1 ? 'full' : frac > 0 ? 'half' : '';
-      return `<span class="dot ${cls}" title="${esc(g.title)} — ${Math.round(frac * 100)}%"></span>`;
+      const col = catColorOf(g);
+      const style = frac > 0 ? ` style="background:${col};border-color:${col}"` : '';
+      return `<span class="dot"${style} title="${esc(g.title)} — ${Math.round(frac * 100)}%"></span>`;
     }).join('');
     return `<div class="calrow ${ws === curWeek ? 'sel' : ''}" data-action="cal-week" data-week="${ws}">
       <span class="wk">W${isoWeekNumber(ws)}</span>
@@ -516,28 +618,29 @@ function renderRow(goal, curMonth, days, today, wn) {
   const targets = plan ? state.weekTargets.filter((t) => t.weekPlanId === plan.id).sort((a, b) => a.order - b.order) : [];
   const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
   const wFrac = plan ? weekProgress(targets, tasks) : 0;
-  const mFrac = monthProgress(
-    plans
-      .filter((p) => monthOfWeek(p.weekStart) === goal.month)
-      .map((p) => ({
-        targets: state.weekTargets.filter((t) => t.weekPlanId === p.id),
-        tasks: state.dayTasks.filter((t) => t.weekPlanId === p.id),
-      }))
-      .filter((x) => x.targets.length > 0 || x.tasks.length > 0)
-      .map((x) => weekProgress(x.targets, x.tasks)),
-  );
+  const mFrac = goalMonthFrac(goal);
+  const catCol = catColorOf(goal);
 
   return `<div class="row group" data-goal="${goal.id}">
-    <div class="card mcard">
+    <div class="card mcard" style="box-shadow: inset 3px 0 0 ${catCol}">
       <span class="tag m">Monthly</span>
       <div class="mtitle" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</div>
       ${bar(mFrac, 'm')}
-      <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete monthly goal">✕</button>
+      <div class="mtools">
+        <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Move to category">▤</button>
+          ${moveFor === goal.id ? `<div class="dropdown">
+            ${state.categories.slice().sort((a, b) => a.order - b.order).map((c) =>
+              `<button data-action="move-pick" data-id="${goal.id}" data-cat="${c.id}" class="${c.id === goal.categoryId ? 'sel' : ''}">${esc(c.name)}</button>`).join('')}
+            <button data-action="move-pick" data-id="${goal.id}" data-cat="" class="${!catOf(goal) ? 'sel' : ''}">Uncategorized</button>
+          </div>` : ''}
+        </div>
+        <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete monthly goal">✕</button>
+      </div>
     </div>
     ${connector(mFrac)}
     <div class="card wcard">${renderWeekCard(goal, plan, targets, tasks, wFrac, wn)}</div>
     ${connector(wFrac)}
-    <div class="days">${days.map((d) => renderCell(goal, plan, d, targets, tasks, today)).join('')}</div>
+    <div class="days">${days.map((d) => renderCell(goal, plan, d, targets, tasks, today, catCol)).join('')}</div>
   </div>`;
 }
 
@@ -561,19 +664,19 @@ function renderWeekCard(goal, plan, targets, tasks, wFrac, wn) {
     <button class="addlink" data-action="add-target" data-plan="${plan.id}" data-goal="${goal.id}">+ add target</button>`;
 }
 
-function renderCell(goal, plan, date, targets, tasks, today) {
+function renderCell(goal, plan, date, targets, tasks, today, catCol) {
   const cellTasks = tasks.filter((t) => t.date === date).sort((a, b) => a.order - b.order);
   const cls = ['cell'];
   if (date === today) cls.push('today');
   else if (date > today) cls.push('future');
-  const items = cellTasks.map((t) => taskHtml(t, targets)).join('');
+  const items = cellTasks.map((t) => taskHtml(t, targets, catCol)).join('');
   return `<div class="${cls.join(' ')}" data-date="${date}">
     <div class="tasks">${items}</div>
     <button class="addlink" data-action="add-task" data-goal="${goal.id}" data-plan="${plan ? plan.id : ''}" data-date="${date}">+</button>
   </div>`;
 }
 
-function taskHtml(t, targets) {
+function taskHtml(t, targets, catCol) {
   const linked = targets.find((x) => x.id === t.targetId);
   const chip = `<div class="chip-wrap">
     <button class="chip ${linked ? 'linked' : ''}" data-action="chip" data-id="${t.id}" title="${linked ? 'Linked to: ' + esc(linked.title) : 'Link to a weekly target'}">⚑</button>
@@ -582,7 +685,7 @@ function taskHtml(t, targets) {
       ${targets.map((x) => `<button data-action="chip-pick" data-task="${t.id}" data-target="${x.id}" class="${x.id === t.targetId ? 'sel' : ''}">${esc(x.title)}</button>`).join('')}
     </div>` : ''}
   </div>`;
-  return `<div class="task" data-tid="${t.targetId || ''}">
+  return `<div class="task" data-tid="${t.targetId || ''}" style="border-left:2px solid ${catCol || 'var(--border-h)'}">
     <input type="checkbox" data-change="task-done" data-id="${t.id}" ${t.done ? 'checked' : ''} />
     <span class="tmain">
       <span class="txt ${t.done ? 'done' : ''}" data-action="edit-task" data-id="${t.id}">${esc(t.text)}</span>
@@ -611,7 +714,9 @@ function renderPhone() {
       ${busyDays.has(d) ? '<span class="ddot"></span>' : ''}
     </button>`).join('');
 
-  const cards = goals.map((g) => renderPhoneCard(g, curDay, today, wn)).join('');
+  const cards = catSections(curMonth)
+    .map((s) => catHeadHtml(s.cat, s.goals) + (s.cat && s.cat.collapsed ? '' : s.goals.map((g) => renderPhoneCard(g, curDay, today, wn)).join('')))
+    .join('');
 
   app.innerHTML = `
     <header>
@@ -641,7 +746,7 @@ function renderPhone() {
     </header>
     <main>
       ${cards}
-      <button class="dashed monthly" data-action="add-goal">+ Monthly goal</button>
+      <button class="dashed monthly" data-action="add-cat">+ Category</button>
     </main>`;
 }
 
@@ -652,16 +757,8 @@ function renderPhoneCard(goal, day, today, wn) {
   const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
   const dayTasks = tasks.filter((t) => t.date === day).sort((a, b) => a.order - b.order);
   const wFrac = plan ? weekProgress(targets, tasks) : 0;
-  const mFrac = monthProgress(
-    plans
-      .filter((p) => monthOfWeek(p.weekStart) === goal.month)
-      .map((p) => ({
-        targets: state.weekTargets.filter((t) => t.weekPlanId === p.id),
-        tasks: state.dayTasks.filter((t) => t.weekPlanId === p.id),
-      }))
-      .filter((x) => x.targets.length > 0 || x.tasks.length > 0)
-      .map((x) => weekProgress(x.targets, x.tasks)),
-  );
+  const mFrac = goalMonthFrac(goal);
+  const catCol = catColorOf(goal);
 
   const weekPart = plan
     ? `<span class="tag w">Week ${wn}</span>
@@ -679,19 +776,28 @@ function renderPhoneCard(goal, day, today, wn) {
        <button class="addlink" data-action="add-target" data-plan="${plan.id}" data-goal="${goal.id}">+ add target</button>`
     : `<button class="dashed" data-action="add-plan" data-goal="${goal.id}">+ Add weekly plan</button>`;
 
-  return `<div class="pcard group" data-goal="${goal.id}">
+  return `<div class="pcard group" data-goal="${goal.id}" style="box-shadow: inset 3px 0 0 ${catCol}">
     <div class="psec">
       <span class="tag m">Monthly</span>
       <div class="mtitle" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</div>
       ${bar(mFrac, 'm')}
-      <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete monthly goal">✕</button>
+      <div class="mtools">
+        <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Move to category">▤</button>
+          ${moveFor === goal.id ? `<div class="dropdown">
+            ${state.categories.slice().sort((a, b) => a.order - b.order).map((c) =>
+              `<button data-action="move-pick" data-id="${goal.id}" data-cat="${c.id}" class="${c.id === goal.categoryId ? 'sel' : ''}">${esc(c.name)}</button>`).join('')}
+            <button data-action="move-pick" data-id="${goal.id}" data-cat="" class="${!catOf(goal) ? 'sel' : ''}">Uncategorized</button>
+          </div>` : ''}
+        </div>
+        <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete monthly goal">✕</button>
+      </div>
     </div>
     <div class="pconn">${downArrow(mFrac)}</div>
     <div class="psec">${weekPart}</div>
     <div class="pconn">${downArrow(wFrac)}</div>
     <div class="psec">
       <div class="pday ${day === today ? 'today' : ''}">${WD[parseISO(day).getDay()].toUpperCase()} ${parseISO(day).getDate()}</div>
-      ${dayTasks.map((t) => taskHtml(t, targets)).join('')}
+      ${dayTasks.map((t) => taskHtml(t, targets, catCol)).join('')}
       <button class="addlink wide" data-action="add-task" data-goal="${goal.id}" data-plan="${plan ? plan.id : ''}" data-date="${day}">+ add task</button>
     </div>
   </div>`;
@@ -725,12 +831,14 @@ app.addEventListener('click', (e) => {
   if (!e.target.closest('.menu-wrap') && menuOpen) { menuOpen = false; closed = true; }
   if (!e.target.closest('.chip-wrap') && chipOpenFor) { chipOpenFor = null; closed = true; }
   if (!e.target.closest('.cal-wrap') && calOpen) { calOpen = false; closed = true; }
+  if (!e.target.closest('.catdot-wrap') && paletteFor) { paletteFor = null; closed = true; }
+  if (!e.target.closest('.mv-wrap') && moveFor) { moveFor = null; closed = true; }
   const el = e.target.closest('[data-action]');
   if (!el) { if (closed) render(); return; }
   const a = el.dataset.action;
   const id = el.dataset.id;
   // if a close happened, `el` is stale after render(); re-query it for DOM-level ops
-  const sel = `[data-action="${a}"]` + ['id', 'goal', 'plan', 'date', 'task', 'target', 'week']
+  const sel = `[data-action="${a}"]` + ['id', 'goal', 'plan', 'date', 'task', 'target', 'week', 'cat', 'color']
     .filter((k) => el.dataset[k])
     .map((k) => `[data-${k}="${CSS.escape(el.dataset[k])}"]`)
     .join('');
@@ -768,6 +876,37 @@ app.addEventListener('click', (e) => {
       if (calOpen) calViewMonth = curMonth;
       render(); break;
     case 'cal-close': calOpen = false; render(); break;
+    case 'cat-pal': paletteFor = paletteFor === id ? null : id; render(); break;
+    case 'cat-color': {
+      const c = findCat(id);
+      if (c) { c.color = el.dataset.color; save(); }
+      paletteFor = null; render(); break;
+    }
+    case 'cat-rename':
+      withEl((el2) => el2 && openInline(el2, findCat(id).name, (v) => { findCat(id).name = v; save(); render(); }));
+      break;
+    case 'cat-del':
+      if (confirm('Delete category? Its goals move to Uncategorized.')) {
+        deleteCategory(id); save(); render();
+      }
+      break;
+    case 'cat-collapse': {
+      const c = findCat(id);
+      if (c) { c.collapsed = !c.collapsed; save(); render(); }
+      break;
+    }
+    case 'cat-add-goal':
+      withEl((el2) => el2 && openInline(el2, '', (v) => { addMonthGoal(curMonth, v, el.dataset.id || undefined); save(); render(); }));
+      break;
+    case 'add-cat':
+      withEl((el2) => el2 && openInline(el2, '', (v) => { addCategory(v); save(); render(); }));
+      break;
+    case 'move-goal': moveFor = moveFor === id ? null : id; render(); break;
+    case 'move-pick': {
+      const g = findGoal(id);
+      if (g) { moveGoalToCategory(g, el.dataset.cat || undefined); save(); }
+      moveFor = null; render(); break;
+    }
     case 'cal-prev': calViewMonth = shiftMonth(calViewMonth, -1); render(); break;
     case 'cal-next': calViewMonth = shiftMonth(calViewMonth, 1); render(); break;
     case 'cal-week': setWeek(el.dataset.week); calOpen = false; render(); break;
@@ -782,9 +921,6 @@ app.addEventListener('click', (e) => {
     case 'install':
       if (installEvt) { installEvt.prompt(); installEvt = null; }
       menuOpen = false; render(); break;
-    case 'add-goal':
-      withEl((el2) => el2 && openInline(el2, '', (v) => { addMonthGoal(curMonth, v); save(); render(); }));
-      break;
     case 'edit-goal':
       withEl((el2) => el2 && openInline(el2, findGoal(id).title, (v) => { findGoal(id).title = v; save(); render(); }));
       break;
@@ -841,8 +977,8 @@ app.addEventListener('change', (e) => {
 
 // Esc closes popover / menu / chip dropdown.
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && (calOpen || menuOpen || chipOpenFor)) {
-    calOpen = false; menuOpen = false; chipOpenFor = null; render();
+  if (e.key === 'Escape' && (calOpen || menuOpen || chipOpenFor || paletteFor || moveFor)) {
+    calOpen = false; menuOpen = false; chipOpenFor = null; paletteFor = null; moveFor = null; render();
   }
 });
 
@@ -902,6 +1038,7 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
     const data = JSON.parse(await f.text());
     if (confirm('Importing will replace ALL current data. Continue?')) {
       state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], ...data };
+      ensureCategories();
       menuOpen = false;
       save(); render();
     }
