@@ -221,7 +221,6 @@
   .hcell.today { background: var(--today-bg); }
   .hcell.auto { cursor: default; }
   .hempty { padding: 40px 0; text-align: center; color: var(--muted); font-size: 13px; }
-  .habit-add { max-width: 280px; }
   .hmtitle { margin: 26px 0 8px; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
   .hmrow { display: flex; align-items: center; margin-bottom: 6px; }
   .hmname { width: 280px; flex-shrink: 0; display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--text2); padding-left: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -242,7 +241,6 @@
     .hcell.today .hlab { color: var(--today-head); font-weight: 700; }
     .hmname { width: 110px; font-size: 11px; }
     .hsq { width: 14px; height: 14px; font-size: 7px; }
-    .habit-add { max-width: none; }
   }
 
 
@@ -619,7 +617,7 @@ function renderDesktop() {
       <div class="menu-wrap">
         <button class="gbtn" data-action="menu" aria-label="Menu">⋯</button>
         ${menuOpen ? `<div class="menu">
-          <button data-action="add-cat">Add category</button>
+          ${state.view === 'habits' ? '<button data-action="habit-add">Add habit</button>' : '<button data-action="add-cat">Add category</button>'}
           <button data-action="export">Export JSON</button>
           <button data-action="import">Import JSON</button>
           ${installEvt ? '<button data-action="install">Install app</button>' : ''}
@@ -710,8 +708,7 @@ function renderHabitsMain(today) {
       <span class="hn">HABIT</span>
       <span class="hd7">${days7.map((d) => `<span class="${d === today ? 'today' : ''}">${dayLabel(d)}</span>`).join('')}</span>
     </div>
-    ${rows || '<div class="hempty">No habits yet — add one below. Link a habit to a category with ⚑ and it ticks itself on days you finish a task in it.</div>'}
-    <button class="addbtn habit-add" data-action="habit-add" title="Add habit">+</button>
+    ${rows || '<div class="hempty">No habits yet — add one from the ⋯ menu. Link a habit to a category with ⚑ and it ticks itself on days you finish a task in it.</div>'}
     ${habitMonthHtml(monthOfWeek(curWeek), today)}
   </main>`;
 }
@@ -904,7 +901,7 @@ function renderPhone() {
         ${menuOpen ? `<div class="menu">
           <button data-action="cal">Month calendar…</button>
           <button data-action="theme">${dark ? 'Light mode' : 'Dark mode'}</button>
-          <button data-action="add-cat">Add category</button>
+          ${state.view === 'habits' ? '<button data-action="habit-add">Add habit</button>' : '<button data-action="add-cat">Add category</button>'}
           <button data-action="export">Export JSON</button>
           <button data-action="import">Import JSON</button>
           ${installEvt ? '<button data-action="install">Install app</button>' : ''}
@@ -933,8 +930,7 @@ function renderPhoneHabits(today) {
     </div>`;
   }).join('');
   return `<main>
-    ${cards || '<div class="hempty">No habits yet — add one below. Link a habit to a category with ⚑ and it ticks itself on days you finish a task in it.</div>'}
-    <button class="addbtn" data-action="habit-add" title="Add habit">+</button>
+    ${cards || '<div class="hempty">No habits yet — add one from the ⋯ menu. Link a habit to a category with ⚑ and it ticks itself on days you finish a task in it.</div>'}
     ${habitMonthHtml(monthOfWeek(curWeek), today)}
   </main>`;
 }
@@ -1162,13 +1158,14 @@ app.addEventListener('click', (e) => {
       chipOpenFor = null; render(); break;
     }
     case 'habit-add': {
+      menuOpen = false;
       const hid = uid();
       state.habits.push({ id: hid, name: '', order: state.habits.length, manual: {} });
       save(); render();
       const nameEl = app.querySelector(`[data-action="habit-edit"][data-id="${hid}"]`);
-      if (nameEl) openInline(nameEl, '',
+      if (nameEl) { nameEl.scrollIntoView({ block: 'center' }); openInline(nameEl, '',
         (v) => { findHabit(hid).name = v; save(); render(); },
-        () => { deleteHabit(hid); save(); render(); });
+        () => { deleteHabit(hid); save(); render(); }); }
       break;
     }
     case 'habit-edit':
