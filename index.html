@@ -470,10 +470,12 @@ const taskCatId = (t) => {
   const g = p && findGoal(p.monthGoalId);
   return g && g.categoryId;
 };
-/** Linked habits are auto: done on any day a task in that category was completed. */
+/** True when a linked habit auto-ticks: a task in its category was completed that day. */
+function habitAuto(h, iso) {
+  return !!h.categoryId && state.dayTasks.some((t) => t.done && t.date === iso && taskCatId(t) === h.categoryId);
+}
 function habitDone(h, iso) {
-  if (h.categoryId) return state.dayTasks.some((t) => t.done && t.date === iso && taskCatId(t) === h.categoryId);
-  return !!(h.manual && h.manual[iso]);
+  return habitAuto(h, iso) || !!(h.manual && h.manual[iso]);
 }
 function addHabit(name) {
   state.habits.push({ id: uid(), name, order: state.habits.length, manual: {} });
@@ -638,15 +640,15 @@ function renderDesktop() {
 /* ---------------- habits view ---------------- */
 function habitCellHtml(h, d, today, showLabel) {
   const done = habitDone(h, d);
-  const auto = !!h.categoryId;
+  const fired = habitAuto(h, d);
   const sun = parseISO(d).getDay() === 0;
   const cls = ['hcell'];
   cls.push(done ? 'done' : d > today ? 'fut' : 'miss');
   if (d === today) cls.push('today');
   if (sun) cls.push('sun');
-  if (auto) cls.push('auto');
-  const col = auto ? ((findCat(h.categoryId) || {}).color || 'var(--ok)') : 'var(--ok)';
-  const tip = auto
+  if (fired) cls.push('auto');
+  const col = h.categoryId ? ((findCat(h.categoryId) || {}).color || 'var(--ok)') : 'var(--ok)';
+  const tip = fired
     ? `${dayLabel(d)} · auto — ticks when a ${(findCat(h.categoryId) || {}).name || 'category'} task is done`
     : `${dayLabel(d)} · ${done ? 'done — tap to unmark' : 'tap to mark done'}`;
   return `<button class="${cls.join(' ')}" data-action="habit-toggle" data-id="${h.id}" data-date="${d}" title="${esc(tip)}">
@@ -1183,7 +1185,7 @@ app.addEventListener('click', (e) => {
     }
     case 'habit-toggle': {
       const h = findHabit(id);
-      if (h && !h.categoryId) {
+      if (h && !habitAuto(h, el.dataset.date)) {
         h.manual = h.manual || {};
         if (h.manual[el.dataset.date]) delete h.manual[el.dataset.date];
         else h.manual[el.dataset.date] = true;
