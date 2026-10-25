@@ -196,8 +196,6 @@
   .hheads .hd7 { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
   .hheads .hd7 span { text-align: center; font-family: var(--mono); font-weight: 400; }
   .hheads .hd7 span.today { color: var(--today-head); font-weight: 700; }
-  .hheads .hm { width: 64px; flex-shrink: 0; text-align: center; }
-  .hheads .hs { width: 56px; flex-shrink: 0; text-align: center; }
   .hrow { display: flex; align-items: stretch; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; }
   .hrow:hover { border-color: var(--border-h); }
   .hname-wrap { position: relative; width: 280px; flex-shrink: 0; padding: 10px 12px; display: flex; align-items: flex-start; gap: 7px; }
@@ -222,11 +220,19 @@
   .hcell.sun { background: var(--fill); }
   .hcell.today { background: var(--today-bg); }
   .hcell.auto { cursor: default; }
-  .hweek, .hstreak { width: 64px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 12px; color: var(--text2); }
-  .hstreak { width: 56px; }
-  .hweek.full, .hstreak.on { color: var(--done-cb); font-weight: 700; }
   .hempty { padding: 40px 0; text-align: center; color: var(--muted); font-size: 13px; }
   .habit-add { max-width: 280px; }
+  .hmtitle { margin: 26px 0 8px; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+  .hmrow { display: flex; align-items: center; margin-bottom: 6px; }
+  .hmname { width: 280px; flex-shrink: 0; display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--text2); padding-left: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .hmname .catdot { flex-shrink: 0; }
+  .hmdays { flex: 1; display: flex; flex-wrap: wrap; gap: 3px; }
+  .hsq { width: 16px; height: 16px; border-radius: 3px; border: 1px solid var(--dot-o); display: inline-flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 8px; color: var(--muted); }
+  .hsq.miss { background: var(--track); }
+  .hsq.fut { opacity: .45; border-style: dashed; }
+  .hsq.done { color: #ffffff; }
+  html.dark .hsq.done { color: #111827; }
+  .hsq.today { box-shadow: inset 0 0 0 1.5px var(--today-head); }
   @media (max-width: 767px) {
     .hname-wrap { width: 100%; }
     .hlbtn { opacity: 1; min-width: 32px; min-height: 32px; }
@@ -234,7 +240,8 @@
     .hcell .hdot { width: 18px; height: 18px; }
     .hcell .hlab { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: .04em; }
     .hcell.today .hlab { color: var(--today-head); font-weight: 700; }
-    .hcard-meta { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--text2); margin-top: 8px; }
+    .hmname { width: 110px; font-size: 11px; }
+    .hsq { width: 14px; height: 14px; font-size: 7px; }
     .habit-add { max-width: none; }
   }
 
@@ -468,14 +475,6 @@ function habitDone(h, iso) {
   if (h.categoryId) return state.dayTasks.some((t) => t.done && t.date === iso && taskCatId(t) === h.categoryId);
   return !!(h.manual && h.manual[iso]);
 }
-function habitStreak(h) {
-  const today = toISODate(new Date());
-  let d = parseISO(today);
-  if (!habitDone(h, today)) d = addDays(d, -1);
-  let n = 0;
-  while (habitDone(h, toISODate(d))) { n++; d = addDays(d, -1); }
-  return n;
-}
 function addHabit(name) {
   state.habits.push({ id: uid(), name, order: state.habits.length, manual: {} });
 }
@@ -674,26 +673,44 @@ function habitNameHtml(h) {
   </div>`;
 }
 
+function habitMonthHtml(month, today) {
+  const [y, m] = month.split('-').map(Number);
+  const nDays = new Date(y, m, 0).getDate();
+  const rows = state.habits.slice().sort((a, b) => a.order - b.order).map((h) => {
+    const cat = h.categoryId ? findCat(h.categoryId) : null;
+    const col = cat ? cat.color : 'var(--ok)';
+    let cells = '';
+    for (let d = 1; d <= nDays; d++) {
+      const iso = `${month}-${pad(d)}`;
+      const done = habitDone(h, iso);
+      const cls = done ? 'done' : iso > today ? 'fut' : 'miss';
+      const tip = `${WD[parseISO(iso).getDay()]} ${d} ${MON[m - 1]} · ${done ? 'done' : iso > today ? 'upcoming' : 'missed'}`;
+      cells += `<span class="hsq ${cls} ${iso === today ? 'today' : ''}" ${done ? `style="background:${col};border-color:${col}"` : ''} title="${esc(tip)}">${d}</span>`;
+    }
+    return `<div class="hmrow">
+      <span class="hmname" title="${esc(h.name)}">${cat ? `<span class="catdot" style="background:${cat.color}"></span>` : ''}${esc(h.name)}</span>
+      <span class="hmdays">${cells}</span>
+    </div>`;
+  }).join('');
+  return rows ? `<div class="hmtitle">${formatMonth(month)} · at a glance</div>${rows}` : '';
+}
+
 function renderHabitsMain(today) {
   const days7 = weekDays7(curWeek);
   const rows = state.habits.slice().sort((a, b) => a.order - b.order).map((h) => {
-    const doneN = days7.filter((d) => habitDone(h, d)).length;
-    const streak = habitStreak(h);
     return `<div class="hrow group" data-hid="${h.id}">
       ${habitNameHtml(h)}
       <div class="hdays7">${days7.map((d) => habitCellHtml(h, d, today, false)).join('')}</div>
-      <span class="hweek ${doneN === 7 ? 'full' : ''}">${doneN}/7</span>
-      <span class="hstreak ${streak ? 'on' : ''}" title="Current streak">${streak}d</span>
     </div>`;
   }).join('');
   return `<main>
     <div class="hheads">
       <span class="hn">HABIT</span>
       <span class="hd7">${days7.map((d) => `<span class="${d === today ? 'today' : ''}">${dayLabel(d)}</span>`).join('')}</span>
-      <span class="hm">WEEK</span><span class="hs">STREAK</span>
     </div>
     ${rows || '<div class="hempty">No habits yet — add one below. Link a habit to a category with ⚑ and it ticks itself on days you finish a task in it.</div>'}
     <button class="addbtn habit-add" data-action="habit-add" title="Add habit">+</button>
+    ${habitMonthHtml(monthOfWeek(curWeek), today)}
   </main>`;
 }
 
@@ -906,19 +923,17 @@ function renderPhone() {
 function renderPhoneHabits(today) {
   const days7 = weekDays7(curWeek);
   const cards = state.habits.slice().sort((a, b) => a.order - b.order).map((h) => {
-    const doneN = days7.filter((d) => habitDone(h, d)).length;
-    const streak = habitStreak(h);
     return `<div class="pcard group" data-hid="${h.id}">
       <div class="psec">
         ${habitNameHtml(h)}
         <div class="hdays7">${days7.map((d) => habitCellHtml(h, d, today, true)).join('')}</div>
-        <div class="hcard-meta"><span>${doneN}/7 this week</span><span class="${streak ? 'hstreak on' : ''}">${streak}d streak</span></div>
       </div>
     </div>`;
   }).join('');
   return `<main>
     ${cards || '<div class="hempty">No habits yet — add one below. Link a habit to a category with ⚑ and it ticks itself on days you finish a task in it.</div>'}
     <button class="addbtn" data-action="habit-add" title="Add habit">+</button>
+    ${habitMonthHtml(monthOfWeek(curWeek), today)}
   </main>`;
 }
 
