@@ -184,6 +184,60 @@
   .inline { width: 100%; padding: 3px 6px; font-size: 14px; font-family: var(--sans); color: var(--text); background: var(--card); border: 1px solid var(--border-h); border-radius: 4px; outline: none; }
   .cell .inline, .task .inline, .target .inline { font-size: 12px; }
 
+  /* ---------- view toggle ---------- */
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+  .seg button { border: 0; background: none; padding: 0 10px; height: 26px; font-size: 12px; color: var(--text2); cursor: pointer; font-family: var(--sans); }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button.sel { background: var(--text); color: var(--bg); font-weight: 600; }
+
+  /* ---------- habits view ---------- */
+  .hheads { display: flex; align-items: flex-end; margin-bottom: 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+  .hheads .hn { width: 280px; flex-shrink: 0; padding-left: 4px; }
+  .hheads .hd7 { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .hheads .hd7 span { text-align: center; font-family: var(--mono); font-weight: 400; }
+  .hheads .hd7 span.today { color: var(--today-head); font-weight: 700; }
+  .hheads .hm { width: 64px; flex-shrink: 0; text-align: center; }
+  .hheads .hs { width: 56px; flex-shrink: 0; text-align: center; }
+  .hrow { display: flex; align-items: stretch; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; }
+  .hrow:hover { border-color: var(--border-h); }
+  .hname-wrap { position: relative; width: 280px; flex-shrink: 0; padding: 10px 12px; display: flex; align-items: flex-start; gap: 7px; }
+  .hname-wrap .catdot { margin-top: 4px; }
+  .hname { font-size: 14px; font-weight: 600; color: var(--text); cursor: text; word-break: break-word; min-width: 0; padding-right: 30px; }
+  .hname .hauto { display: block; font-family: var(--mono); font-size: 10px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .htools { position: absolute; right: 6px; top: 6px; display: flex; align-items: center; gap: 2px; }
+  .htools .del { position: static; }
+  .hl-wrap { position: relative; }
+  .hlbtn { border: 0; background: none; font-size: 11px; color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .15s; padding: 1px 3px; }
+  .hlbtn:hover { color: var(--text2); }
+  .hlbtn.linked { opacity: 1; }
+  .group:hover .hlbtn { opacity: 1; }
+  .hdays7 { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .hcell { border: 0; border-left: 1px solid var(--border); background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 8px 0; font-family: var(--sans); }
+  .hcell:first-child { border-left: 0; }
+  .hcell .hdot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--dot-o); display: inline-block; }
+  .hcell.done .hdot { border-color: var(--ok); background: var(--ok); }
+  .hcell.miss .hdot { border-color: var(--dot-o); }
+  .hcell.fut { opacity: .45; }
+  .hcell.fut .hdot { border-style: dashed; }
+  .hcell.sun { background: var(--fill); }
+  .hcell.today { background: var(--today-bg); }
+  .hcell.auto { cursor: default; }
+  .hweek, .hstreak { width: 64px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 12px; color: var(--text2); }
+  .hstreak { width: 56px; }
+  .hweek.full, .hstreak.on { color: var(--done-cb); font-weight: 700; }
+  .hempty { padding: 40px 0; text-align: center; color: var(--muted); font-size: 13px; }
+  .habit-add { max-width: 280px; }
+  @media (max-width: 767px) {
+    .hname-wrap { width: 100%; }
+    .hlbtn { opacity: 1; min-width: 32px; min-height: 32px; }
+    .hcell { min-height: 44px; }
+    .hcell .hdot { width: 18px; height: 18px; }
+    .hcell .hlab { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: .04em; }
+    .hcell.today .hlab { color: var(--today-head); font-weight: 700; }
+    .hcard-meta { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--text2); margin-top: 8px; }
+    .habit-add { max-width: none; }
+  }
+
 
 
   /* ---------- phone <768px ---------- */
@@ -253,6 +307,11 @@ function weekStartOf(d) {
 function weekDays(weekStart) {
   const mon = parseISO(weekStart);
   return Array.from({ length: 6 }, (_, i) => toISODate(addDays(mon, i)));
+}
+/** Full Mon–Sun week, for habits. */
+function weekDays7(weekStart) {
+  const mon = parseISO(weekStart);
+  return Array.from({ length: 7 }, (_, i) => toISODate(addDays(mon, i)));
 }
 /** A week belongs to the month containing its Thursday (ISO convention). */
 function monthOfWeek(weekStart) {
@@ -334,7 +393,9 @@ function ensureCategories() {
   if (!Array.isArray(state.categories)) { state.categories = defaultCategories(); save(); }
 }
 
-state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], ...load() };
+state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], view: 'goals', ...load() };
+if (!Array.isArray(state.habits)) state.habits = [];
+if (state.view !== 'habits') state.view = 'goals';
 ensureCategories();
 navigator.storage?.persist?.();
 
@@ -361,6 +422,7 @@ function addCategory(name) {
 }
 function deleteCategory(id) {
   for (const g of state.monthGoals) if (g.categoryId === id) g.categoryId = undefined;
+  for (const h of state.habits) if (h.categoryId === id) h.categoryId = undefined;
   state.categories = state.categories.filter((c) => c.id !== id);
 }
 function moveGoalToCategory(goal, categoryId) {
@@ -394,6 +456,31 @@ function deleteTarget(id) {
 }
 function deleteTask(id) { state.dayTasks = state.dayTasks.filter((t) => t.id !== id); }
 
+/* ---------------- habits ---------------- */
+const findHabit = (id) => state.habits.find((h) => h.id === id);
+const taskCatId = (t) => {
+  const p = findPlan(t.weekPlanId);
+  const g = p && findGoal(p.monthGoalId);
+  return g && g.categoryId;
+};
+/** Linked habits are auto: done on any day a task in that category was completed. */
+function habitDone(h, iso) {
+  if (h.categoryId) return state.dayTasks.some((t) => t.done && t.date === iso && taskCatId(t) === h.categoryId);
+  return !!(h.manual && h.manual[iso]);
+}
+function habitStreak(h) {
+  const today = toISODate(new Date());
+  let d = parseISO(today);
+  if (!habitDone(h, today)) d = addDays(d, -1);
+  let n = 0;
+  while (habitDone(h, toISODate(d))) { n++; d = addDays(d, -1); }
+  return n;
+}
+function addHabit(name) {
+  state.habits.push({ id: uid(), name, order: state.habits.length, manual: {} });
+}
+function deleteHabit(id) { state.habits = state.habits.filter((h) => h.id !== id); }
+
 /* ---------------- ui state ---------------- */
 let curWeek = weekStartOf(new Date());
 // phone layout day: today if it's Mon–Sat, else this week's Saturday
@@ -409,6 +496,7 @@ let menuOpen = false;
 let chipOpenFor = null; // task id whose link dropdown is open
 let paletteFor = null; // category id whose colour palette is open
 let moveFor = null; // goal id whose move-to-category dropdown is open
+let linkFor = null; // habit id whose category-link dropdown is open
 let installEvt = null;
 let dark = localStorage.getItem(THEME_KEY) === 'dark';
 document.documentElement.classList.toggle('dark', dark);
@@ -490,6 +578,11 @@ function downArrow(p) {
 /* ---------------- render ---------------- */
 const app = document.getElementById('app');
 
+const segHtml = () => `<div class="seg">
+  <button class="${state.view === 'goals' ? 'sel' : ''}" data-action="set-view" data-v="goals">Goals</button>
+  <button class="${state.view === 'habits' ? 'sel' : ''}" data-action="set-view" data-v="habits">Habits</button>
+</div>`;
+
 function render() {
   if (mqPhone.matches) renderPhone();
   else renderDesktop();
@@ -509,6 +602,7 @@ function renderDesktop() {
     <header>
       <span class="logo">${LOGO}</span>
       <h1>Goal Tracker</h1>
+      ${segHtml()}
       <div class="switcher">
         <button class="gbtn" data-action="prev-week" aria-label="Previous week">◀</button>
         <span class="wlabel">W${wn} · ${esc(formatWeekRangeShort(curWeek))}</span>
@@ -531,7 +625,7 @@ function renderDesktop() {
         </div>` : ''}
       </div>
     </header>
-    <main>
+    ${state.view === 'habits' ? renderHabitsMain(today) : `<main>
       <div class="colheads">
         <span class="mc">MONTH</span><span class="cn"></span>
         <span class="wc">WEEK</span><span class="cn"></span>
@@ -539,7 +633,68 @@ function renderDesktop() {
           `<span class="${d.slice(0, 7) !== curMonth ? 'out' : ''} ${d === today ? 'today' : ''}">${dayLabel(d)}</span>`).join('')}</span>
       </div>
       ${rows}
-    </main>`;
+    </main>`}`;
+}
+
+/* ---------------- habits view ---------------- */
+function habitCellHtml(h, d, today, showLabel) {
+  const done = habitDone(h, d);
+  const auto = !!h.categoryId;
+  const sun = parseISO(d).getDay() === 0;
+  const cls = ['hcell'];
+  cls.push(done ? 'done' : d > today ? 'fut' : 'miss');
+  if (d === today) cls.push('today');
+  if (sun) cls.push('sun');
+  if (auto) cls.push('auto');
+  const col = auto ? ((findCat(h.categoryId) || {}).color || 'var(--ok)') : 'var(--ok)';
+  const tip = auto
+    ? `${dayLabel(d)} · auto — ticks when a ${(findCat(h.categoryId) || {}).name || 'category'} task is done`
+    : `${dayLabel(d)} · ${done ? 'done — tap to unmark' : 'tap to mark done'}`;
+  return `<button class="${cls.join(' ')}" data-action="habit-toggle" data-id="${h.id}" data-date="${d}" title="${esc(tip)}">
+    ${showLabel ? `<span class="hlab">${WD[parseISO(d).getDay()].toUpperCase()}</span>` : ''}
+    <span class="hdot" ${done ? `style="background:${col};border-color:${col}"` : ''}></span>
+  </button>`;
+}
+
+function habitNameHtml(h) {
+  const cat = h.categoryId ? findCat(h.categoryId) : null;
+  return `<div class="hname-wrap">
+    ${cat ? `<span class="catdot" style="background:${cat.color}" title="Linked to ${esc(cat.name)}"></span>` : ''}
+    <span class="hname" data-action="habit-edit" data-id="${h.id}">${esc(h.name)}${cat ? `<span class="hauto">auto · ${esc(cat.name)}</span>` : ''}</span>
+    <span class="htools">
+      <span class="hl-wrap"><button class="hlbtn ${cat ? 'linked' : ''}" data-action="habit-link" data-id="${h.id}" title="${cat ? 'Linked to: ' + esc(cat.name) : 'Link to a category'}">⚑</button>
+        ${linkFor === h.id ? `<div class="dropdown">
+          <button data-action="habit-link-pick" data-id="${h.id}" data-cat="" class="${!cat ? 'sel' : ''}">No category</button>
+          ${state.categories.slice().sort((a, b) => a.order - b.order).map((c) =>
+            `<button data-action="habit-link-pick" data-id="${h.id}" data-cat="${c.id}" class="${cat && c.id === cat.id ? 'sel' : ''}">${esc(c.name)}</button>`).join('')}
+        </div>` : ''}
+      </span>
+      <button class="del" data-action="habit-del" data-id="${h.id}" title="Delete habit">✕</button>
+    </span>
+  </div>`;
+}
+
+function renderHabitsMain(today) {
+  const days7 = weekDays7(curWeek);
+  const rows = state.habits.slice().sort((a, b) => a.order - b.order).map((h) => {
+    const doneN = days7.filter((d) => habitDone(h, d)).length;
+    const streak = habitStreak(h);
+    return `<div class="hrow group" data-hid="${h.id}">
+      ${habitNameHtml(h)}
+      <div class="hdays7">${days7.map((d) => habitCellHtml(h, d, today, false)).join('')}</div>
+      <span class="hweek ${doneN === 7 ? 'full' : ''}">${doneN}/7</span>
+      <span class="hstreak ${streak ? 'on' : ''}" title="Current streak">${streak}d</span>
+    </div>`;
+  }).join('');
+  return `<main>
+    <div class="hheads">
+      <span class="hn">HABIT</span>
+      <span class="hd7">${days7.map((d) => `<span class="${d === today ? 'today' : ''}">${dayLabel(d)}</span>`).join('')}</span>
+      <span class="hm">WEEK</span><span class="hs">STREAK</span>
+    </div>
+    ${rows || '<div class="hempty">No habits yet — add one below. Link a habit to a category with ⚑ and it ticks itself on days you finish a task in it.</div>'}
+    <button class="addbtn habit-add" data-action="habit-add" title="Add habit">+</button>
+  </main>`;
 }
 
 function renderCal() {
@@ -718,6 +873,7 @@ function renderPhone() {
   app.innerHTML = `
     <header>
       <span class="logo">${LOGO}</span>
+      ${segHtml()}
       <div class="switcher">
         <button class="gbtn" data-action="prev-week" aria-label="Previous week">◀</button>
         <span class="wlabel">W${wn} · ${esc(formatWeekRangeShort(curWeek))}</span>
@@ -735,16 +891,35 @@ function renderPhone() {
           ${installEvt ? '<button data-action="install">Install app</button>' : ''}
         </div>` : ''}
       </div>
-      <div class="daybar">
+      ${state.view === 'goals' ? `<div class="daybar">
         <button class="gbtn dnav" data-action="prev-day" aria-label="Previous day">‹</button>
         ${chips}
         <button class="gbtn dnav" data-action="next-day" aria-label="Next day">›</button>
-      </div>
+      </div>` : ''}
       ${calOpen ? `<div class="cal-wrap"><div class="backdrop" data-action="cal-close"></div>${renderCal()}</div>` : ''}
     </header>
-    <main>
+    ${state.view === 'habits' ? renderPhoneHabits(today) : `<main>
       ${cards}
-    </main>`;
+    </main>`}`;
+}
+
+function renderPhoneHabits(today) {
+  const days7 = weekDays7(curWeek);
+  const cards = state.habits.slice().sort((a, b) => a.order - b.order).map((h) => {
+    const doneN = days7.filter((d) => habitDone(h, d)).length;
+    const streak = habitStreak(h);
+    return `<div class="pcard group" data-hid="${h.id}">
+      <div class="psec">
+        ${habitNameHtml(h)}
+        <div class="hdays7">${days7.map((d) => habitCellHtml(h, d, today, true)).join('')}</div>
+        <div class="hcard-meta"><span>${doneN}/7 this week</span><span class="${streak ? 'hstreak on' : ''}">${streak}d streak</span></div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<main>
+    ${cards || '<div class="hempty">No habits yet — add one below. Link a habit to a category with ⚑ and it ticks itself on days you finish a task in it.</div>'}
+    <button class="addbtn" data-action="habit-add" title="Add habit">+</button>
+  </main>`;
 }
 
 function renderPhoneCard(goal, day, today) {
@@ -829,6 +1004,7 @@ app.addEventListener('click', (e) => {
   if (!e.target.closest('.cal-wrap') && calOpen) { calOpen = false; closed = true; }
   if (!e.target.closest('.catdot-wrap') && paletteFor) { paletteFor = null; closed = true; }
   if (!e.target.closest('.mv-wrap') && moveFor) { moveFor = null; closed = true; }
+  if (!e.target.closest('.hl-wrap') && linkFor) { linkFor = null; closed = true; }
   const el = e.target.closest('[data-action]');
   if (!el) { if (closed) render(); return; }
   const a = el.dataset.action;
@@ -845,6 +1021,7 @@ app.addEventListener('click', (e) => {
   const curMonth = monthOfWeek(curWeek);
 
   switch (a) {
+    case 'set-view': state.view = el.dataset.v === 'habits' ? 'habits' : 'goals'; save(); render(); break;
     case 'prev-week': setWeek(toISODate(addDays(parseISO(curWeek), -7))); render(); break;
     case 'next-week': setWeek(toISODate(addDays(parseISO(curWeek), 7))); render(); break;
     case 'today': {
@@ -967,6 +1144,38 @@ app.addEventListener('click', (e) => {
       if (t) { t.targetId = el.dataset.target || undefined; save(); }
       chipOpenFor = null; render(); break;
     }
+    case 'habit-add': {
+      const hid = uid();
+      state.habits.push({ id: hid, name: '', order: state.habits.length, manual: {} });
+      save(); render();
+      const nameEl = app.querySelector(`[data-action="habit-edit"][data-id="${hid}"]`);
+      if (nameEl) openInline(nameEl, '',
+        (v) => { findHabit(hid).name = v; save(); render(); },
+        () => { deleteHabit(hid); save(); render(); });
+      break;
+    }
+    case 'habit-edit':
+      withEl((el2) => el2 && openInline(el2, findHabit(id).name, (v) => { findHabit(id).name = v; save(); render(); }));
+      break;
+    case 'habit-del':
+      if (confirm(`Delete habit "${findHabit(id).name}"?`)) { deleteHabit(id); save(); render(); }
+      break;
+    case 'habit-link': linkFor = linkFor === id ? null : id; render(); break;
+    case 'habit-link-pick': {
+      const h = findHabit(id);
+      if (h) { h.categoryId = el.dataset.cat || undefined; save(); }
+      linkFor = null; render(); break;
+    }
+    case 'habit-toggle': {
+      const h = findHabit(id);
+      if (h && !h.categoryId) {
+        h.manual = h.manual || {};
+        if (h.manual[el.dataset.date]) delete h.manual[el.dataset.date];
+        else h.manual[el.dataset.date] = true;
+        save(); render();
+      }
+      break;
+    }
   }
 });
 
@@ -982,8 +1191,8 @@ app.addEventListener('change', (e) => {
 
 // Esc closes popover / menu / chip dropdown.
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && (calOpen || menuOpen || chipOpenFor || paletteFor || moveFor)) {
-    calOpen = false; menuOpen = false; chipOpenFor = null; paletteFor = null; moveFor = null; render();
+  if (e.key === 'Escape' && (calOpen || menuOpen || chipOpenFor || paletteFor || moveFor || linkFor)) {
+    calOpen = false; menuOpen = false; chipOpenFor = null; paletteFor = null; moveFor = null; linkFor = null; render();
   }
 });
 
@@ -995,7 +1204,7 @@ app.addEventListener('touchstart', (e) => {
   swipeX = t.clientX; swipeY = t.clientY;
 }, { passive: true });
 app.addEventListener('touchend', (e) => {
-  if (inlineOpen || !mqPhone.matches) return;
+  if (inlineOpen || !mqPhone.matches || state.view !== 'goals') return;
   const t = e.changedTouches[0];
   const dx = t.clientX - swipeX, dy = t.clientY - swipeY;
   if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
@@ -1042,7 +1251,9 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
   try {
     const data = JSON.parse(await f.text());
     if (confirm('Importing will replace ALL current data. Continue?')) {
-      state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], ...data };
+      state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], view: 'goals', ...data };
+      if (!Array.isArray(state.habits)) state.habits = [];
+      if (state.view !== 'habits') state.view = 'goals';
       ensureCategories();
       menuOpen = false;
       save(); render();
