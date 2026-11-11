@@ -294,6 +294,7 @@
   <div id="app"></div>
 </div>
 <input type="file" id="importFile" accept="application/json" hidden />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 'use strict';
 
@@ -382,7 +383,120 @@ function load() {
   try { const raw = localStorage.getItem(KEY); if (raw) return JSON.parse(raw); } catch (e) { /* corrupted */ }
   return null;
 }
+
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+/* ---------------- optional Supabase cloud sync ---------------- */
+const SUPABASE_URL = 'https://xpdsqupbkubpkmkaidvx.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IrxKdK9KXASoWSJnMFs4cg_sJO83ueH';
+const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+function hasTrackerData(data) {
+  return ['monthGoals', 'weekPlans', 'weekTargets', 'dayTasks', 'habits']
+    .some((key) => Array.isArray(data[key]) && data[key].length > 0);
+}
+
+async function cloudSync() {
+  if (!supabaseClient) {
+    alert('Cloud sync could not load. Check your internet connection and reload the app.');
+    return;
+  }
+
+  try {
+    let { data: sessionData, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+
+    if (!sessionData.session) {
+      const email = prompt('Enter your email address. We will send you a secure sign-in link.');
+      if (!email || !email.trim()) return;
+      const { error: signInError } = await supabaseClient.auth.signInWithOtp({
+        email: email.trim(),
+        options: { emailRedirectTo: window.location.href },
+      });
+      if (signInError) throw signInError;
+      alert('Sign-in link sent. Open it from this same browser, then choose Cloud sync… again.');
+      return;
+    }
+
+    const user = sessionData.session.user;
+    const { data: cloud, error: readError } = await supabaseClient
+      .from('goal_tracker_data')
+      .select('data, version, updated_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (readError) throw readError;
+
+    if (!cloud) {
+      if (!hasTrackerData(state)) {
+        alert('This device has no goals, plans, tasks or habits yet. Import your JSON backup first, then choose Cloud sync… again.');
+        return;
+      }
+      if (!confirm('No cloud backup exists for this account. Upload the data currently open in this browser for the first time? Your JSON backup will not be changed.')) return;
+      const { error: insertError } = await supabaseClient
+        .from('goal_tracker_data')
+        .insert({ user_id: user.id, data: state, version: 1 });
+      if (insertError) throw insertError;
+      alert('First upload completed. Your tracker data is now backed up in Supabase.');
+      return;
+    }
+
+    const choice = prompt(
+      'Cloud data already exists (version ' + cloud.version + ', updated ' +
+      new Date(cloud.updated_at).toLocaleString() +
+      ').\n\nType DOWNLOAD to replace this browser’s data with the cloud copy.\nType UPLOAD to replace the cloud copy with this browser’s data.\nCancel to do nothing.'
+    );
+    if (!choice) return;
+
+    if (choice.trim().toUpperCase() === 'DOWNLOAD') {
+      if (!confirm('Replace the data currently open in this browser with the cloud copy? Export a backup first if you need it.')) return;
+      if (!cloud.data || typeof cloud.data !== 'object' || Array.isArray(cloud.data)) {
+        throw new Error('The cloud backup has an unexpected format. Local data was not changed.');
+      }
+      state = {
+        monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], view: 'goals',
+        ...cloud.data,
+      };
+      if (!Array.isArray(state.habits)) state.habits = [];
+      if (state.view !== 'habits') state.view = 'goals';
+      ensureCategories();
+      save();
+      render();
+      alert('Cloud data downloaded to this browser.');
+      return;
+    }
+
+    if (choice.trim().toUpperCase() === 'UPLOAD') {
+      if (!hasTrackerData(state)) {
+        alert('This browser has no goals, plans, tasks or habits to upload.');
+        return;
+      }
+      if (!confirm('Replace the cloud backup with the data currently open in this browser? This cannot be undone from Supabase. Export a JSON backup first.')) return;
+      const { data: updated, error: updateError } = await supabaseClient
+        .from('goal_tracker_data')
+        .update({
+          data: state,
+          version: cloud.version + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+        .eq('version', cloud.version)
+        .select('version')
+        .maybeSingle();
+      if (updateError) throw updateError;
+      if (!updated) {
+        alert('The cloud data changed after it was read. Nothing was overwritten. Choose Cloud sync… again and review the latest version.');
+        return;
+      }
+      alert('Cloud backup updated to version ' + updated.version + '.');
+      return;
+    }
+
+    alert('No action taken. Type DOWNLOAD or UPLOAD exactly, or cancel.');
+  } catch (err) {
+    console.error('Cloud sync failed:', err);
+    alert('Cloud sync failed: ' + (err.message || String(err)));
+  }
+}
 
 /* ---------------- categories ---------------- */
 const PALETTE = ['#4f46e5', '#2563eb', '#0891b2', '#059669', '#ca8a04', '#ea580c', '#db2777', '#7c3aed'];
@@ -618,6 +732,7 @@ function renderDesktop() {
         <button class="gbtn" data-action="menu" aria-label="Menu">⋯</button>
         ${menuOpen ? `<div class="menu">
           ${state.view === 'habits' ? '<button data-action="habit-add">Add habit</button>' : '<button data-action="add-cat">Add category</button>'}
+          <button data-action="cloud-sync">Cloud sync…</button>
           <button data-action="export">Export JSON</button>
           <button data-action="import">Import JSON</button>
           ${installEvt ? '<button data-action="install">Install app</button>' : ''}
@@ -902,6 +1017,7 @@ function renderPhone() {
           <button data-action="cal">Month calendar…</button>
           <button data-action="theme">${dark ? 'Light mode' : 'Dark mode'}</button>
           ${state.view === 'habits' ? '<button data-action="habit-add">Add habit</button>' : '<button data-action="add-cat">Add category</button>'}
+          <button data-action="cloud-sync">Cloud sync…</button>
           <button data-action="export">Export JSON</button>
           <button data-action="import">Import JSON</button>
           ${installEvt ? '<button data-action="install">Install app</button>' : ''}
@@ -1111,6 +1227,7 @@ app.addEventListener('click', (e) => {
       localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
       render(); break;
     case 'menu': menuOpen = !menuOpen; render(); break;
+    case 'cloud-sync': menuOpen = false; render(); cloudSync(); break;
     case 'export': doExport(); menuOpen = false; render(); break;
     case 'import': document.getElementById('importFile').click(); break;
     case 'install':

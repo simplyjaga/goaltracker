@@ -1,27 +1,60 @@
 # Goal Tracker
 
-A single HTML file goal tracker. No server, no build step, no dependencies.
+A single HTML file goal tracker. No build step or application server is required.
 
-## Run
+## Run locally
 
-Double-click `index.html` (or drag it into Chrome). Bookmark it for quick access.
+From the repository directory, start a small static web server:
 
-## Data
+```bash
+python3 -m http.server 8000
+```
 
-All data is saved in the browser's localStorage (key `goal-tracker-v1`), so keep
-using the same browser. Clearing the browser's site data erases it.
-Use ⋯ → "Export JSON" for backups; "Import JSON" restores a backup and replaces
-all current data.
+Open <http://localhost:8000/> in your browser.
 
-## Publish later (installable via GitHub Pages)
+Using localhost is recommended for testing cloud sync. The app also works offline for normal tracker use; cloud sync requires an internet connection.
 
-The folder already includes `manifest.webmanifest`, `sw.js` and `icons/` — they
-are ignored on `file://` and activate automatically when served over https.
+## Data and backups
 
-1. Push this folder to a GitHub repo.
-2. Repo → Settings → Pages → deploy from branch `main`, root folder.
-3. Open `https://<user>.github.io/<repo>/` in Chrome.
-4. Install via the address-bar icon or the ⋯ menu → "Install app".
+Tracker data is saved in browser localStorage under `goal-tracker-v1`. Use ⋯ → **Export JSON** to create a backup and **Import JSON** to restore one. Import replaces the data currently open in that browser.
 
-Note: data stored while using the file version and data stored on the hosted
-version are separate (different origins). Move it with Export → Import.
+Keep a separate copy of your JSON export before the first cloud upload.
+
+## Supabase cloud sync
+
+The app uses Supabase Auth and the `public.goal_tracker_data` table. The browser contains only the Supabase project URL and publishable key; never put a Supabase secret/service-role key in this repository.
+
+The table must have Row Level Security enabled and policies that restrict select, insert and update to rows where `auth.uid() = user_id`. The expected table shape is:
+
+- `user_id` UUID primary key referencing `auth.users(id)`
+- `data` JSONB
+- `version` BIGINT
+- `updated_at` TIMESTAMPTZ
+
+### Configure redirect URLs
+
+In Supabase → Authentication → URL Configuration, allow the URLs you use to sign in, including:
+
+- Your deployed Goal Tracker URL: `https://simplyjaga.github.io/goaltracker/`
+- Local testing: `http://localhost:8000/`
+
+Keep the deployed URL as the Site URL if that is your production app.
+
+### First upload
+
+1. Open the app and use ⋯ → **Import JSON** to import your existing backup.
+2. Check that your goals, plans, tasks and habits appear correctly.
+3. Choose ⋯ → **Cloud sync…** and enter the email address for your Supabase account.
+4. Open the sign-in email in the same browser. Return to the tracker and choose **Cloud sync…** again.
+5. If no cloud backup exists, confirm **first upload**. The app uploads the current tracker state; it does not modify your JSON file.
+6. Verify the row in Supabase Table Editor → `goal_tracker_data`.
+
+### Syncing another device
+
+Sign in with the same email on the other device and choose **Cloud sync…**. If cloud data exists, type **DOWNLOAD** to restore it to that browser, or **UPLOAD** only when you intentionally want that browser's data to replace the cloud copy. Export a JSON backup before replacing local or cloud data.
+
+The app does not silently synchronize changes in the background. It uses explicit actions and a version check to avoid overwriting a cloud update that happened after it was read. Keep exporting JSON backups as an independent recovery option.
+
+## GitHub Pages
+
+In the repository, open Settings → Pages and deploy from the `main` branch, root folder. The project site is <https://simplyjaga.github.io/goaltracker/>.
