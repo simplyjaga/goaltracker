@@ -441,14 +441,14 @@ function showCloudSyncOptions(cloud, user) {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:20px;';
     const panel = document.createElement('div');
-    panel.style.cssText = 'width:min(100%,420px);padding:24px;border-radius:18px;background:var(--surface, #fff);color:var(--text, #222);box-shadow:0 12px 40px rgba(0,0,0,.25);';
+    panel.style.cssText = 'width:min(100%,420px);padding:24px;border-radius:18px;background:var(--card, #111827);color:var(--text, #e5e7eb);box-shadow:0 12px 40px rgba(0,0,0,.25);';
     panel.innerHTML = `
-      <h2 style="margin:0 0 8px;font-size:1.25rem">Cloud sync</h2>
-      <p style="margin:0 0 6px;opacity:.8">Choose what you want to do.</p>
-      <p style="margin:0 0 20px;font-size:.85rem;opacity:.65">Cloud backup · Version ${Number(cloud.version)} · Updated ${new Date(cloud.updated_at).toLocaleString()}</p>
-      <button type="button" data-cloud-choice="upload" style="width:100%;padding:14px;margin-bottom:10px;border:0;border-radius:10px;background:var(--accent, #2563eb);color:white;font:inherit;font-weight:600">Upload to cloud ↑</button>
-      <button type="button" data-cloud-choice="download" style="width:100%;padding:14px;margin-bottom:10px;border:1px solid currentColor;border-radius:10px;background:transparent;color:inherit;font:inherit;font-weight:600">Download from cloud ↓</button>
-      <button type="button" data-cloud-choice="cancel" style="width:100%;padding:10px;border:0;background:transparent;color:inherit;font:inherit;opacity:.7">Cancel</button>
+      <h2 style="margin:0 0 8px;font-size:1.25rem;color:var(--text)">Cloud sync</h2>
+      <p style="margin:0 0 6px;color:var(--text2)">Choose what you want to do.</p>
+      <p style="margin:0 0 20px;font-size:.85rem;color:var(--text2)">Cloud backup · Version ${Number(cloud.version)} · Updated ${new Date(cloud.updated_at).toLocaleString()}</p>
+      <button type="button" data-cloud-choice="upload" style="width:100%;padding:14px;margin-bottom:10px;border:0;border-radius:10px;background:#2563eb;color:#ffffff;font:inherit;font-weight:700">↑ Upload to cloud</button>
+      <button type="button" data-cloud-choice="download" style="width:100%;padding:14px;margin-bottom:10px;border:1px solid var(--border-h);border-radius:10px;background:var(--fill);color:var(--text);font:inherit;font-weight:700">↓ Download from cloud</button>
+      <button type="button" data-cloud-choice="cancel" style="width:100%;padding:10px;border:0;background:transparent;color:var(--text2);font:inherit;font-weight:600">Cancel</button>
     `;
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
