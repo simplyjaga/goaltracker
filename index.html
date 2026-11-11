@@ -389,7 +389,47 @@ function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 /* ---------------- optional Supabase cloud sync ---------------- */
 const SUPABASE_URL = 'https://xpdsqupbkubpkmkaidvx.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IrxKdK9KXASoWSJnMFs4cg_sJO83ueH';
-const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+    flowType: 'pkce',
+  },
+});
+
+// Process the PKCE callback before any cloud-sync action checks the session.
+// Keeping this as a shared promise prevents a sync click from racing the exchange.
+const authReady = (async () => {
+  if (!supabaseClient) return null;
+
+  const callbackUrl = new URL(window.location.href);
+  const code = callbackUrl.searchParams.get('code');
+  const authError = callbackUrl.searchParams.get('error_description') ||
+    callbackUrl.searchParams.get('error');
+
+  if (authError) {
+    callbackUrl.searchParams.delete('error_description');
+    callbackUrl.searchParams.delete('error');
+    callbackUrl.searchParams.delete('error_code');
+    window.history.replaceState({}, document.title,
+      callbackUrl.pathname + callbackUrl.search + callbackUrl.hash);
+    throw new Error(authError);
+  }
+
+  if (code) {
+    const { data, error } = await supabaseClient.auth.exchangeCodeForSession(code);
+    callbackUrl.searchParams.delete('code');
+    window.history.replaceState({}, document.title,
+      callbackUrl.pathname + callbackUrl.search + callbackUrl.hash);
+    if (error) throw error;
+    return data.session;
+  }
+
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  return data.session;
+})();
 
 function hasTrackerData(data) {
   return ['monthGoals', 'weekPlans', 'weekTargets', 'dayTasks', 'habits']
@@ -403,7 +443,9 @@ async function cloudSync() {
   }
 
   try {
-    let { data: sessionData, error } = await supabaseClient.auth.getSession();
+    // Wait for any magic-link callback exchange before checking the session.
+    await authReady;
+    const { data: sessionData, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
 
     if (!sessionData.session) {
@@ -411,7 +453,7 @@ async function cloudSync() {
       if (!email || !email.trim()) return;
       const { error: signInError } = await supabaseClient.auth.signInWithOtp({
         email: email.trim(),
-        options: { emailRedirectTo: window.location.href },
+        options: { emailRedirectTo: new URL('./', window.location.href).toString() },
       });
       if (signInError) throw signInError;
       alert('Sign-in link sent. Open it from this same browser, then choose Cloud sync… again.');
