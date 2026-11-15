@@ -478,9 +478,11 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .gsection .cathead{border:0;border-bottom:1px solid var(--border);border-radius:11px 11px 0 0;background:#121225;margin:0}
 .grow{border:0;border-radius:0;overflow:visible}
 .grow + .grow{border-top:1px solid var(--border)}
-.gsection .grow:last-child{border-radius:0 0 11px 11px}
-.gsection .grow:last-child .glabel{border-bottom-left-radius:11px}
-.gsection .grow:last-child .gcell:last-child{border-bottom-right-radius:11px}
+.gsection .grow:nth-last-child(2){border-radius:0 0 11px 11px}
+.gsection .grow:nth-last-child(2) .glabel{border-bottom-left-radius:11px}
+.gsection .grow:nth-last-child(2) .gcell:last-child{border-bottom-right-radius:11px}
+.gsection .addgoal{display:block;width:100%;border:0;border-top:1px dashed var(--border);border-radius:0 0 11px 11px;background:transparent;color:var(--muted);padding:9px 12px;font:600 12px var(--sans);cursor:pointer;text-align:left}
+.gsection .addgoal:hover{color:var(--text2);background:var(--fill)}
 .dd-h{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:4px 12px}
 .dropdown button.danger{color:#f87171}
 .dropdown button.danger:hover{background:rgba(239,68,68,.1);color:#ef4444}
@@ -955,7 +957,6 @@ function catHeadHtml(cat, goals) {
     <span class="catname" style="color:${color}" ${cat ? `data-action="cat-rename" data-id="${cat.id}"` : ''}>${esc(name)}</span>
     <button class="addlink" data-action="cat-add-goal" data-id="${id}">+ Goal</button>
     <span class="catsp"></span>
-    ${cat ? `<button class="addlink" data-action="cat-collapse" data-id="${cat.id}" title="${collapsed ? 'Expand' : 'Collapse'}">${collapsed ? '▸' : '▾'}</button>` : ''}
     ${cat ? `<button class="del catdel" data-action="cat-del" data-id="${cat.id}" title="Delete category">✕</button>` : ''}
   </div>`;
 }
@@ -1191,7 +1192,8 @@ function renderGoalsMain(curMonth, today) {
   const days7 = weekDays(curWeek);
   if (!days7.includes(curDay)) curDay = days7[0];
   const rows = catSections(curMonth)
-    .map((s) => `<div class="gsection">${catHeadHtml(s.cat, s.goals)}${s.cat && s.cat.collapsed ? '' : s.goals.map((g) => goalRowHtml(g, days7, today)).join('')}</div>`)
+    .map((s) => `<div class="gsection">${catHeadHtml(s.cat, s.goals)}${s.cat && s.cat.collapsed ? '' : s.goals.map((g) => goalRowHtml(g, days7, today)).join('') +
+      `<button class="addgoal" data-action="cat-add-goal" data-id="${s.cat ? s.cat.id : ''}">＋ Add goal to ${esc(s.cat ? s.cat.name : 'Uncategorized')}</button>`}</div>`)
     .join('');
   return `<main>
     <div class="gboard">
