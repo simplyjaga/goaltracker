@@ -1237,12 +1237,13 @@ function showAppDialog({ title, description = '', fields = [], submitLabel = 'Sa
 function showAppNotice(title,message){return showAppDialog({title,description:message,fields:[],submitLabel:'Got it'});}
 async function editExploreItem(id){
   const item=id?state.exploreItems.find(x=>x.id===id):null;
-  const goals=state.monthGoals.slice().sort((a,b)=>a.title.localeCompare(b.title));
-  const values=await showAppDialog({title:item?'Edit saved item':'Explore & Later',description:'Save something interesting to come back to when you have time.',submitLabel:item?'Save changes':'Add to list',initial:item||{},fields:[
+  const cats=(state.categories||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  const itemCategoryId=item?(item.categoryId||(findGoal(item.goalId)||{}).categoryId||''):'';
+  const values=await showAppDialog({title:item?'Edit saved item':'Explore & Later',description:'Save something interesting to come back to when you have time.',submitLabel:item?'Save changes':'Add to list',initial:{...(item||{}),categoryId:itemCategoryId},fields:[
     {name:'title',label:'What do you want to explore?',required:true,placeholder:'e.g. Consistent hashing'},
     {name:'description',label:'Description / note',type:'textarea',placeholder:'Why it caught your attention or what to look into'},
     {name:'url',label:'Resource link (optional)',type:'url',placeholder:'https://…'},
-    {name:'goalId',label:'Link to a goal (optional)',type:'select',options:[{value:'',label:'No linked goal'},...goals.map(g=>({value:g.id,label:g.title}))]}
+    {name:'categoryId',label:'Link to a category (optional)',type:'select',options:[{value:'',label:'No linked category'},...cats.map(c=>({value:c.id,label:c.name}))]}
   ]});
   if(!values)return;
   if(item)Object.assign(item,values);else state.exploreItems.push({id:uid(),...values,done:false,order:state.exploreItems.length});
@@ -1252,7 +1253,7 @@ async function editExploreItem(id){
 function renderExploreMain() {
   const items=(state.exploreItems||[]).slice().sort((a,b)=>(a.done===b.done?(a.order||0)-(b.order||0):Number(a.done)-Number(b.done)));
   return `<main class="explore-page"><div class="explore-head"><div><h2>Explore & Later</h2><p>Interesting things to learn, read, or build when there's room.</p></div><button class="explore-add" data-action="explore-add">＋ Add item</button></div><div class="explore-list">
-  ${items.length?items.map(item=>{const goal=item.goalId?findGoal(item.goalId):null;return `<article class="explore-item"><input type="checkbox" data-change="explore-done" data-id="${item.id}" ${item.done?'checked':''} aria-label="Mark as picked up"/><div class="explore-copy"><div class="explore-title ${item.done?'done':''}" data-action="explore-edit" data-id="${item.id}">${esc(item.title)}</div>${item.description?`<p>${esc(item.description)}</p>`:''}${goal?`<span class="explore-goal">Linked goal · ${esc(goal.title)}</span>`:''}</div><div class="explore-actions">${item.url?`<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">Open ↗</a>`:''}<button data-action="explore-delete" data-id="${item.id}" aria-label="Remove item">×</button></div></article>`;}).join(''):'<div class="explore-empty">Nothing saved for later yet. Add a topic, resource, or project idea when you come across one.</div>'}</div></main>`;
+  ${items.length?items.map(item=>{const categoryId=item.categoryId||(findGoal(item.goalId)||{}).categoryId;const cat=categoryId?(state.categories||[]).find(c=>c.id===categoryId):null;return `<article class="explore-item"><input type="checkbox" data-change="explore-done" data-id="${item.id}" ${item.done?'checked':''} aria-label="Mark as picked up"/><div class="explore-copy"><div class="explore-title ${item.done?'done':''}" data-action="explore-edit" data-id="${item.id}">${esc(item.title)}</div>${item.description?`<p>${esc(item.description)}</p>`:''}${cat?`<span class="explore-goal">Category · ${esc(cat.name)}</span>`:''}</div><div class="explore-actions">${item.url?`<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">Open ↗</a>`:''}<button data-action="explore-delete" data-id="${item.id}" aria-label="Remove item">×</button></div></article>`;}).join(''):'<div class="explore-empty">Nothing saved for later yet. Add a topic, resource, or project idea when you come across one.</div>'}</div></main>`;
 }
 
 /* ---------------- render ---------------- */
