@@ -472,6 +472,11 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .grow{border:0;border-radius:0}
 .grow + .grow{border-top:1px solid var(--border)}
 .dd-h{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:4px 12px}
+.dropdown button.danger{color:#f87171}
+.dropdown button.danger:hover{background:rgba(239,68,68,.1);color:#ef4444}
+.cathead .addlink{font-weight:600;color:var(--text2);border:1px solid var(--border);border-radius:14px;padding:1px 10px;font-size:11px}
+.cathead .addlink:hover{color:var(--text);border-color:var(--border-h);background:var(--fill)}
+.cathead .addlink[data-action="cat-collapse"]{border:0;padding:2px 4px}
 .gtarget{font-size:10px;line-height:15px;color:var(--text2);margin:0 0 5px 17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gtarget.done{color:var(--muted);text-decoration:line-through}
 .gboard + .month-side{margin-top:18px}
@@ -930,7 +935,6 @@ function catHeadHtml(cat, goals) {
   const id = cat ? cat.id : '';
   const name = cat ? cat.name : 'Uncategorized';
   const color = cat ? cat.color : 'var(--muted)';
-  const avg = goals.length ? Math.round(monthProgress(goals.map(goalMonthFrac)) * 100) : null;
   const collapsed = cat ? cat.collapsed : false;
   return `<div class="cathead group" data-cat="${id}">
     <span class="catdot-wrap"><button class="catdot" style="background:${color}" data-action="cat-pal" data-id="${id}" title="Category colour"></button>
@@ -938,9 +942,8 @@ function catHeadHtml(cat, goals) {
         `<button style="background:${c}" data-action="cat-color" data-id="${cat.id}" data-color="${c}" title="${c}"></button>`).join('')}</div>` : ''}
     </span>
     <span class="catname" style="color:${color}" ${cat ? `data-action="cat-rename" data-id="${cat.id}"` : ''}>${esc(name)}</span>
-    <span class="catmeta">${goals.length} goal${goals.length === 1 ? '' : 's'}${avg !== null ? ` · ${avg}%` : ''}</span>
-    <span class="catsp"></span>
     <button class="addlink" data-action="cat-add-goal" data-id="${id}">+ Goal</button>
+    <span class="catsp"></span>
     ${cat ? `<button class="addlink" data-action="cat-collapse" data-id="${cat.id}" title="${collapsed ? 'Expand' : 'Collapse'}">${collapsed ? '▸' : '▾'}</button>` : ''}
     ${cat ? `<button class="del catdel" data-action="cat-del" data-id="${cat.id}" title="Delete category">✕</button>` : ''}
   </div>`;
@@ -1043,16 +1046,17 @@ function goalRowHtml(goal, days7, today) {
       ${targetLines ? `<div class="gtlist">${targetLines}</div>` : ''}
       ${fracBar(frac, `${Math.round(frac * 100)}% (${c.done} / ${c.total})`)}
       <div class="mtools">
-        <button class="del mvbtn" data-action="targets-pop" data-id="${goal.id}" title="Weekly targets">☰</button>
-        <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Move to category">▤</button>
+        <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Goal options">⋯</button>
           ${moveFor === goal.id ? `<div class="dropdown">
+            <div class="dd-h">Goal options</div>
+            <button data-action="targets-open" data-id="${goal.id}">☰ Weekly targets…</button>
             <div class="dd-h">Move to category</div>
             ${state.categories.slice().sort((a, b) => a.order - b.order).map((c2) =>
               `<button data-action="move-pick" data-id="${goal.id}" data-cat="${c2.id}" class="${c2.id === goal.categoryId ? 'sel' : ''}">${esc(c2.name)}</button>`).join('')}
             <button data-action="move-pick" data-id="${goal.id}" data-cat="" class="${!catOf(goal) ? 'sel' : ''}">Uncategorized</button>
+            <button class="danger" data-action="del-goal" data-id="${goal.id}">✕ Delete goal</button>
           </div>` : ''}
         </div>
-        <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete monthly goal">✕</button>
       </div>
       ${targetsFor === goal.id ? tpopHtml(goal, plan, targets, tasks) : ''}
     </div>
@@ -1686,6 +1690,7 @@ app.addEventListener('click', (e) => {
       render(); break;
     }
     case 'targets-pop': targetsFor = targetsFor === id ? null : id; moveFor = null; render(); break;
+    case 'targets-open': targetsFor = id; moveFor = null; render(); break;
     case 'panel-add': panelPickOpen = !panelPickOpen; render(); break;
     case 'panel-add-pick': {
       const gid = el.dataset.goal;
