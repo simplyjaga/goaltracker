@@ -457,6 +457,10 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .glabel .gtname,.glabel .gsub,.task .txt,.tp-goal,.corow .ct,.hmname,.hname{overflow-wrap:anywhere}
 .glabel .gtname{min-width:0}
 .ghead .gh:first-child{display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:default}
+/* popovers stay anchored inside the goal label, never clipped at the board edge */
+.tpop{left:8px;right:auto;top:8px;width:min(300px,calc(100vw - 240px));max-height:70vh;overflow-y:auto;z-index:60}
+.glabel .mv-wrap{position:static}
+.glabel .dropdown{left:8px;right:auto;top:32px;width:max-content;max-width:260px;max-height:60vh;overflow-y:auto;z-index:60}
 .month-task{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* one cohesive board: slim day header, goal rows share the card */
 .gboard{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:block}
@@ -935,7 +939,7 @@ function catHeadHtml(cat, goals) {
     <span class="catname" style="color:${color}" ${cat ? `data-action="cat-rename" data-id="${cat.id}"` : ''}>${esc(name)}</span>
     <span class="catmeta">${goals.length} goal${goals.length === 1 ? '' : 's'}${avg !== null ? ` · ${avg}%` : ''}</span>
     <span class="catsp"></span>
-    <button class="addlink" data-action="cat-add-goal" data-id="${id}">+ goal</button>
+    <button class="addlink" data-action="cat-add-goal" data-id="${id}">+ Goal</button>
     ${cat ? `<button class="addlink" data-action="cat-collapse" data-id="${cat.id}" title="${collapsed ? 'Expand' : 'Collapse'}">${collapsed ? '▸' : '▾'}</button>` : ''}
     ${cat ? `<button class="del catdel" data-action="cat-del" data-id="${cat.id}" title="Delete category">✕</button>` : ''}
   </div>`;
@@ -1024,8 +1028,9 @@ function goalRowHtml(goal, days7, today) {
   const c = planCounts(plan);
   const frac = c.total ? c.done / c.total : 0;
   const cat = catOf(goal);
+  const labelBg = cat ? ` style="background:${cat.color}22;box-shadow:inset 3px 0 0 ${cat.color}"` : '';
   return `<div class="grow group" data-goal="${goal.id}">
-    <div class="glabel">
+    <div class="glabel"${labelBg}>
       <div class="gt"><span class="catdot" style="background:${catColorOf(goal)}"></span>
         <span class="gtname" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</span></div>
       <div class="gsub">${cat ? esc(cat.name) : 'Uncategorized'}</div>
