@@ -1048,8 +1048,6 @@ function goalRowHtml(goal, days7, today) {
   const plan = state.weekPlans.find((p) => p.monthGoalId === goal.id && p.weekStart === curWeek);
   const targets = plan ? state.weekTargets.filter((t) => t.weekPlanId === plan.id).sort((a, b) => a.order - b.order) : [];
   const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
-  const c = planCounts(plan);
-  const frac = c.total ? c.done / c.total : 0;
   const cat = catOf(goal);
   const targetLines = targets.map((t) => {
     const s = targetStatus(t, tasks);
@@ -1061,7 +1059,6 @@ function goalRowHtml(goal, days7, today) {
         <span class="gtname" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</span></div>
       <div class="gsub">${cat ? esc(cat.name) : 'Uncategorized'}</div>
       ${targetLines ? `<div class="gtlist">${targetLines}</div>` : ''}
-      ${fracBar(frac, `${Math.round(frac * 100)}% (${c.done} / ${c.total})`)}
       <div class="mtools">
         <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Goal options">⋯</button>
           ${moveFor === goal.id ? `<div class="dropdown">
