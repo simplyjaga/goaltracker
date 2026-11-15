@@ -1488,6 +1488,7 @@ app.addEventListener('click', (e) => {
     case 'month-day-select': curDay = el.dataset.date; curMonthView = curDay.slice(0,7); curWeek = weekStartOf(parseISO(curDay)); render(); break;
     case 'today': {
       curWeek = weekStartOf(new Date());
+      curMonthView = monthOfWeek(curWeek);
       const wd = weekDays(curWeek), t = toISODate(new Date());
       curDay = wd.includes(t) ? t : wd[5];
       render(); break;
