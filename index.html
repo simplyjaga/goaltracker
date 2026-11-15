@@ -462,18 +462,16 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .glabel .mv-wrap{position:static}
 .glabel .dropdown{left:8px;right:auto;top:32px;width:max-content;max-width:260px;max-height:60vh;overflow-y:auto;z-index:60}
 .month-task{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* goal rows as tinted modules; category strips and day header stay slim */
+/* category + its goals grouped as one section; rows tinted modules */
 .gboard{background:transparent;border:0;overflow:visible;display:grid;gap:10px}
 .ghead{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#19182f}
 .ghead .gh{height:44px;padding:6px 3px;font-size:10px}
 .ghead .gh b{font-size:13px}
-.grow{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
+.gsection{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
+.gsection .cathead{border:0;border-bottom:1px solid var(--border);background:#121225;margin:0}
+.grow{border:0;border-radius:0}
 .grow + .grow{border-top:1px solid var(--border)}
-.grow:hover{border-color:var(--border-h)}
-.gboard .cathead{border:1px solid var(--border);border-radius:10px;background:#121225;margin:0}
-.gboard .cathead [data-action="cat-add-goal"]{display:none}
-.addgoal{border:1px dashed var(--border-h);border-radius:12px;background:transparent;color:var(--muted);padding:11px;cursor:pointer;font:600 12px var(--sans)}
-.addgoal:hover{border-style:solid;color:var(--text2);background:var(--fill)}
+.dd-h{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:4px 12px}
 .gtarget{font-size:10px;line-height:15px;color:var(--text2);margin:0 0 5px 17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gtarget.done{color:var(--muted);text-decoration:line-through}
 .gboard + .month-side{margin-top:18px}
@@ -1048,6 +1046,7 @@ function goalRowHtml(goal, days7, today) {
         <button class="del mvbtn" data-action="targets-pop" data-id="${goal.id}" title="Weekly targets">☰</button>
         <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Move to category">▤</button>
           ${moveFor === goal.id ? `<div class="dropdown">
+            <div class="dd-h">Move to category</div>
             ${state.categories.slice().sort((a, b) => a.order - b.order).map((c2) =>
               `<button data-action="move-pick" data-id="${goal.id}" data-cat="${c2.id}" class="${c2.id === goal.categoryId ? 'sel' : ''}">${esc(c2.name)}</button>`).join('')}
             <button data-action="move-pick" data-id="${goal.id}" data-cat="" class="${!catOf(goal) ? 'sel' : ''}">Uncategorized</button>
@@ -1177,8 +1176,7 @@ function renderGoalsMain(curMonth, today) {
   const days7 = weekDays7(curWeek);
   if (!days7.includes(curDay)) curDay = days7[0];
   const rows = catSections(curMonth)
-    .map((s) => catHeadHtml(s.cat, s.goals) + (s.cat && s.cat.collapsed ? '' : s.goals.map((g) => goalRowHtml(g, days7, today)).join('') +
-      `<button class="addgoal" data-action="cat-add-goal" data-id="${s.cat ? s.cat.id : ''}">＋ Add goal${s.cat ? ' to ' + esc(s.cat.name) : ''}</button>`))
+    .map((s) => `<div class="gsection">${catHeadHtml(s.cat, s.goals)}${s.cat && s.cat.collapsed ? '' : s.goals.map((g) => goalRowHtml(g, days7, today)).join('')}</div>`)
     .join('');
   return `<main>
     <div class="gboard">
