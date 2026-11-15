@@ -474,10 +474,13 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .ghead{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#19182f}
 .ghead .gh{height:44px;padding:6px 3px;font-size:10px}
 .ghead .gh b{font-size:13px}
-.gsection{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
-.gsection .cathead{border:0;border-bottom:1px solid var(--border);background:#121225;margin:0}
-.grow{border:0;border-radius:0}
+.gsection{border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.gsection .cathead{border:0;border-bottom:1px solid var(--border);border-radius:11px 11px 0 0;background:#121225;margin:0}
+.grow{border:0;border-radius:0;overflow:visible}
 .grow + .grow{border-top:1px solid var(--border)}
+.gsection .grow:last-child{border-radius:0 0 11px 11px}
+.gsection .grow:last-child .glabel{border-bottom-left-radius:11px}
+.gsection .grow:last-child .gcell:last-child{border-bottom-right-radius:11px}
 .dd-h{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:4px 12px}
 .dropdown button.danger{color:#f87171}
 .dropdown button.danger:hover{background:rgba(239,68,68,.1);color:#ef4444}
