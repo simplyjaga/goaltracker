@@ -406,6 +406,32 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .explore-actions{display:flex;align-items:center;gap:12px;flex-shrink:0}.explore-actions a{color:#c5a9ff;font-size:12px;text-decoration:none}.explore-actions button{border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer}
 .explore-empty{padding:30px;border:1px dashed var(--border-h);border-radius:12px;color:var(--muted);text-align:center}
 
+
+/* Desktop month view: details below the calendar, never squeezed into a narrow rail. */
+@media(min-width:768px){
+ .month-layout{display:flex;flex-direction:column;gap:12px;width:100%;max-width:100%;min-width:0}
+ .month-main,.month-board{width:100%;min-width:0}
+ .month-side{display:grid;grid-template-columns:minmax(230px,.72fr) minmax(0,1.8fr);gap:12px;width:100%;min-width:0;align-items:stretch}
+ .month-side>.tpanel{min-width:0;margin:0}
+ .month-side .tp-cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+ .month-side .corow{min-width:0;flex-wrap:wrap}.month-side .corow .ct{overflow-wrap:anywhere}
+ .month-side .tp-head{flex-wrap:wrap}.month-side .tp-head .pbar{max-width:150px}
+ .page-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 12px}
+ .section-heading{font-size:21px;margin:0;font-weight:750}
+ .primary-action{border:1px solid #7541d4;border-radius:9px;background:linear-gradient(110deg,#7131dc,#5224b2);color:#fff;padding:8px 13px;font:600 12px var(--sans);cursor:pointer;white-space:nowrap}
+ .hpage-head .primary-action{margin-left:auto}
+ .app-dialog-backdrop{position:fixed;inset:0;z-index:11000;background:rgba(4,5,15,.72);display:grid;place-items:center;padding:20px;backdrop-filter:blur(4px)}
+ .app-dialog{width:min(100%,480px);max-height:min(88vh,760px);overflow:auto;padding:22px;border:1px solid var(--border-h);border-radius:16px;background:var(--card);color:var(--text);box-shadow:0 20px 60px rgba(0,0,0,.42)}
+ .app-dialog-head h2{margin:0 0 5px;font-size:20px}.app-dialog-head p{margin:0 0 18px;color:var(--text2);font-size:13px;line-height:1.5}
+ .app-dialog-fields{display:grid;gap:13px}.dialog-field{display:grid;gap:5px;color:var(--text2);font-size:12px;font-weight:600}
+ .dialog-field input,.dialog-field textarea,.dialog-field select{width:100%;min-width:0;border:1px solid var(--border-h);border-radius:8px;background:var(--fill);color:var(--text);padding:10px 11px;font:14px var(--sans);outline:none}
+ .dialog-field input:focus,.dialog-field textarea:focus,.dialog-field select:focus{border-color:#8b5cf6;box-shadow:0 0 0 2px rgba(139,92,246,.18)}
+ .dialog-field textarea{resize:vertical}.app-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+ .app-dialog-actions button{border-radius:8px;padding:9px 14px;font:600 13px var(--sans);cursor:pointer}
+ .dialog-cancel{border:1px solid var(--border-h);background:transparent;color:var(--text2)}
+ .dialog-submit{border:1px solid #7541d4;background:linear-gradient(110deg,#7131dc,#5224b2);color:white}
+}
+
 </style>
 </style>
 </head>
@@ -578,7 +604,8 @@ function showCloudSyncOptions(cloud, user) {
     overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
 
     panel.querySelector('[data-cloud-choice="download"]').addEventListener('click', async () => {
-      if (!confirm('Replace the data currently open in this browser with the cloud copy? Export a backup first if you need it.')) return;
+      const proceed = await showAppDialog({ title: 'Replace local data?', description: 'This will replace the data currently open in this browser with the cloud copy. Export a backup first if you need to keep the local version.', fields: [], submitLabel: 'Replace with cloud copy' });
+      if (!proceed) return;
       try {
         if (!cloud.data || typeof cloud.data !== 'object' || Array.isArray(cloud.data)) {
           throw new Error('The cloud backup has an unexpected format. Local data was not changed.');
@@ -647,14 +674,14 @@ async function cloudSync() {
     if (error) throw error;
 
     if (!sessionData.session) {
-      const email = prompt('Enter your email address. We will send you a secure sign-in link.');
-      if (!email || !email.trim()) return;
+      const credentials = await showAppDialog({ title: 'Sign in to cloud sync', description: 'Enter your email. We’ll send a secure sign-in link to this address.', submitLabel: 'Send sign-in link', fields: [{ name: 'email', label: 'Email address', type: 'email', required: true, placeholder: 'you@example.com' }] });
+      if (!credentials) return;
       const { error: signInError } = await supabaseClient.auth.signInWithOtp({
-        email: email.trim(),
+        email: credentials.email,
         options: { emailRedirectTo: new URL('./', window.location.href).toString() },
       });
       if (signInError) throw signInError;
-      alert('Sign-in link sent. Open it from this same browser, then choose Cloud sync… again.');
+      await showAppNotice('Check your email', 'A sign-in link has been sent. Open it in this same browser, then choose Cloud Sync again.');
       return;
     }
 
@@ -668,15 +695,16 @@ async function cloudSync() {
 
     if (!cloud) {
       if (!hasTrackerData(state)) {
-        alert('This device has no goals, plans, tasks or habits yet. Import your JSON backup first, then choose Cloud sync… again.');
+        await showAppNotice('Nothing to upload yet', 'This device has no goals, plans, tasks or habits. Import your JSON backup first, then choose Cloud Sync again.');
         return;
       }
-      if (!confirm('No cloud backup exists for this account. Upload the data currently open in this browser for the first time? Your JSON backup will not be changed.')) return;
+      const proceed = await showAppDialog({ title: 'Create your cloud backup?', description: 'No cloud backup exists for this account. Upload the data currently open in this browser? Your JSON export will not be changed.', fields: [], submitLabel: 'Upload first backup' });
+      if (!proceed) return;
       const { error: insertError } = await supabaseClient
         .from('goal_tracker_data')
         .insert({ user_id: user.id, data: state, version: 1 });
       if (insertError) throw insertError;
-      alert('First upload completed. Your tracker data is now backed up in Supabase.');
+      await showAppNotice('Backup complete', 'Your tracker data is now backed up in Supabase.');
       return;
     }
 
@@ -1100,12 +1128,12 @@ function monthGoalsMain(month, today) {
   }).join('');
   const monthTasks = state.dayTasks.filter(t => t.date.startsWith(month));
   const done = monthTasks.filter(t => t.done).length;
-  return `<main class="month-layout"><section class="month-main"><h2 class="month-heading"><span class="cal-ico">▦</span>${formatMonth(month)}</h2>
+  return `<main class="month-layout"><section class="month-main"><div class="page-toolbar"><h2 class="month-heading"><span class="cal-ico">▦</span>${formatMonth(month)}</h2><button class="primary-action" data-action="add-cat">＋ Add category</button></div>
     <div class="month-board">
       ${['MON','TUE','WED','THU','FRI','SAT','SUN'].map(d=>`<div class="month-dow">${d}</div>`).join('')}
       ${cells}
     </div>
-    <div class="wsum"><span class="wst">${formatMonth(month)} summary</span><span>${goals.length} goals</span><span>${done} / ${monthTasks.length} tasks completed</span><span class="ws-all">${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}% complete</span></div></section><aside class="month-side"><div class="overview-card"><h3>▥ ${formatMonth(month)} Overview</h3><div class="overview-total"><strong>${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}%</strong><span>${done} / ${monthTasks.length}<br/>Tasks done</span></div>${categorySummary || '<span class="tp-empty">No category tasks planned yet.</span>'}</div>${todayPanelHtml(today)}</aside></main>`;
+    <div class="wsum"><span class="wst">${formatMonth(month)} summary</span><span>${goals.length} goals</span><span>${done} / ${monthTasks.length} tasks completed</span><span class="ws-all">${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}% complete</span></div></section><section class="month-side"><div class="overview-card"><h3>▥ ${formatMonth(month)} Overview</h3><div class="overview-total"><strong>${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}%</strong><span>${done} / ${monthTasks.length}<br/>Tasks done</span></div>${categorySummary || '<span class="tp-empty">No category tasks planned yet.</span>'}</div>${todayPanelHtml(today)}</section></main>`;
 }
 
 function renderGoalsMain(curMonth, today) {
@@ -1115,7 +1143,7 @@ function renderGoalsMain(curMonth, today) {
   const rows = catSections(curMonth)
     .map((s) => catHeadHtml(s.cat, s.goals) + (s.cat && s.cat.collapsed ? '' : s.goals.map((g) => goalRowHtml(g, days7, today)).join('')))
     .join('');
-  return `<main>
+  return `<main><div class="page-toolbar"><h2 class="section-heading">Goals</h2><button class="primary-action" data-action="add-cat">＋ Add category</button></div>
     ${carryBannerHtml(today)}
     <div class="gboard">
       <div class="ghead"><span class="gh"></span>${days7.map((d) =>
@@ -1130,6 +1158,48 @@ function renderGoalsMain(curMonth, today) {
   </main>`;
 }
 
+
+
+/* ---------------- app-styled dialogs ---------------- */
+function showAppDialog({ title, description = '', fields = [], submitLabel = 'Save', initial = {} }) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div'); overlay.className = 'app-dialog-backdrop';
+    const panel = document.createElement('form'); panel.className = 'app-dialog';
+    panel.innerHTML = `<div class="app-dialog-head"><h2>${esc(title)}</h2><p>${esc(description)}</p></div><div class="app-dialog-fields"></div><div class="app-dialog-actions"><button type="button" class="dialog-cancel">Cancel</button><button type="submit" class="dialog-submit">${esc(submitLabel)}</button></div>`;
+    const root = panel.querySelector('.app-dialog-fields');
+    for (const field of fields) {
+      const wrap=document.createElement('label');wrap.className='dialog-field';
+      const caption=document.createElement('span');caption.textContent=field.label;wrap.appendChild(caption);
+      let input;
+      if(field.type==='textarea'){input=document.createElement('textarea');input.rows=field.rows||3;}
+      else if(field.type==='select'){input=document.createElement('select');for(const option of field.options||[]){const opt=document.createElement('option');opt.value=option.value;opt.textContent=option.label;input.appendChild(opt);}}
+      else{input=document.createElement('input');input.type=field.type||'text';}
+      input.name=field.name;input.value=initial[field.name]??field.value??'';if(field.placeholder)input.placeholder=field.placeholder;if(field.required)input.required=true;
+      wrap.appendChild(input);root.appendChild(wrap);
+    }
+    overlay.appendChild(panel);document.body.appendChild(overlay);
+    const finish=value=>{overlay.remove();resolve(value);};
+    panel.querySelector('.dialog-cancel').addEventListener('click',()=>finish(null));
+    overlay.addEventListener('click',e=>{if(e.target===overlay)finish(null);});
+    panel.addEventListener('submit',e=>{e.preventDefault();const values={};for(const field of fields)values[field.name]=panel.elements.namedItem(field.name).value.trim();if(fields.some(field=>field.required&&!values[field.name]))return;finish(values);});
+    panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();finish(null);}});
+    panel.querySelector('input,textarea,select')?.focus();
+  });
+}
+function showAppNotice(title,message){return showAppDialog({title,description:message,fields:[],submitLabel:'Got it'});}
+async function editExploreItem(id){
+  const item=id?state.exploreItems.find(x=>x.id===id):null;
+  const goals=state.monthGoals.slice().sort((a,b)=>a.title.localeCompare(b.title));
+  const values=await showAppDialog({title:item?'Edit saved item':'Explore & Later',description:'Save something interesting to come back to when you have time.',submitLabel:item?'Save changes':'Add to list',initial:item||{},fields:[
+    {name:'title',label:'What do you want to explore?',required:true,placeholder:'e.g. Consistent hashing'},
+    {name:'description',label:'Description / note',type:'textarea',placeholder:'Why it caught your attention or what to look into'},
+    {name:'url',label:'Resource link (optional)',type:'url',placeholder:'https://…'},
+    {name:'goalId',label:'Link to a goal (optional)',type:'select',options:[{value:'',label:'No linked goal'},...goals.map(g=>({value:g.id,label:g.title}))]}
+  ]});
+  if(!values)return;
+  if(item)Object.assign(item,values);else state.exploreItems.push({id:uid(),...values,done:false,order:state.exploreItems.length});
+  save();render();
+}
 
 function renderExploreMain() {
   const items=(state.exploreItems||[]).slice().sort((a,b)=>(a.done===b.done?(a.order||0)-(b.order||0):Number(a.done)-Number(b.done)));
@@ -1176,8 +1246,7 @@ function renderDesktop() {
           <div class="cal-wrap"><button class="gbtn iconbtn" data-action="cal" title="Calendar">▦</button>${calOpen ? renderCal() : ''}</div>
           <button class="gbtn iconbtn" data-action="theme" title="Toggle theme">${dark ? '☀' : '☾'}</button>
           <div class="menu-wrap"><button class="gbtn iconbtn" data-action="menu" aria-label="Menu">⋯</button>${menuOpen ? `<div class="menu">
-            ${state.view === 'habits' ? '<button data-action="habit-add">Add habit</button>' : '<button data-action="add-cat">Add category</button>'}
-            <button data-action="cloud-sync">Cloud sync…</button><button data-action="export">Export JSON</button><button data-action="import">Import JSON</button>
+            <button data-action="export">Export backup (JSON)</button><button data-action="import">Import backup (JSON)</button>
             ${installEvt ? '<button data-action="install">Install app</button>' : ''}
           </div>` : ''}</div>
         </header>
@@ -1266,13 +1335,13 @@ function renderHabitsMain(today) {
       <div class="hdays7">${days7.map((d) => habitCellHtml(h, d, today, false)).join('')}</div>
     </div>`;
   }).join('');
-  return `<main><div class="hpage-head"><span class="hicon">⟳</span><div><h2>Habits</h2><p>Build good habits, one day at a time</p></div></div>
+  return `<main><div class="hpage-head"><span class="hicon">⟳</span><div><h2>Habits</h2><p>Build good habits, one day at a time</p></div><button class="primary-action" data-action="habit-add">＋ Add habit</button></div>
     ${habitSummaryHtml(today)}
     <div class="hheads">
       <span class="hn">HABIT</span>
       <span class="hd7">${days7.map((d) => `<span class="${d === today ? 'today' : ''}">${dayLabel(d)}</span>`).join('')}</span>
     </div>
-    ${rows || '<div class="hempty">No habits yet — add one from the ⋯ menu. Link a habit to a category with ⚑ and it ticks itself on days you finish a task in it.</div>'}
+    ${rows || '<div class="hempty">No habits yet — add one using the Add habit button above. Link a habit to a category with ⚑ and it ticks itself on days you finish a task in it.</div>'}
     ${habitMonthHtml(monthOfWeek(curWeek), today)}
   </main>`;
 }
@@ -1403,10 +1472,8 @@ function renderPhone() {
         ${menuOpen ? `<div class="menu">
           <button data-action="cal">Month calendar…</button>
           <button data-action="theme">${dark ? 'Light mode' : 'Dark mode'}</button>
-          ${state.view === 'habits' ? '<button data-action="habit-add">Add habit</button>' : '<button data-action="add-cat">Add category</button>'}
-          <button data-action="cloud-sync">Cloud sync…</button>
-          <button data-action="export">Export JSON</button>
-          <button data-action="import">Import JSON</button>
+          <button data-action="export">Export backup (JSON)</button>
+          <button data-action="import">Import backup (JSON)</button>
           ${installEvt ? '<button data-action="install">Install app</button>' : ''}
         </div>` : ''}
       </div>
@@ -1702,27 +1769,8 @@ app.addEventListener('click', (e) => {
       chipOpenFor = null; render(); break;
     }
 
-    case 'explore-add': {
-      const title=prompt('What would you like to explore later?');
-      if(!title||!title.trim()) break;
-      const description=prompt('Short note or why it caught your attention (optional):')||'';
-      const url=prompt('Resource link (optional):')||'';
-      const goals=state.monthGoals;
-      let goalId;
-      if(goals.length&&confirm('Link this item to an existing goal?')){
-        const choice=Number(prompt('Enter goal number:\n'+goals.map((g,i)=>(i+1)+'. '+g.title).join('\n')));
-        if(choice>0&&choice<=goals.length)goalId=goals[choice-1].id;
-      }
-      state.exploreItems.push({id:uid(),title:title.trim(),description:description.trim(),url:url.trim(),goalId,done:false,order:state.exploreItems.length});
-      save();render();break;
-    }
-    case 'explore-edit': {
-      const item=state.exploreItems.find(x=>x.id===id);if(!item)break;
-      const title=prompt('Item title:',item.title);if(title===null||!title.trim())break;
-      const description=prompt('Description:',item.description||'');if(description===null)break;
-      const url=prompt('Resource link:',item.url||'');if(url===null)break;
-      item.title=title.trim();item.description=description.trim();item.url=url.trim();save();render();break;
-    }
+    case 'explore-add': editExploreItem(); break;
+    case 'explore-edit': editExploreItem(id); break;
     case 'explore-delete': {
       if(confirm('Remove this item from Explore & Later?')){state.exploreItems=state.exploreItems.filter(x=>x.id!==id);save();render();}break;
     }
