@@ -96,14 +96,6 @@
 
   /* ---------- board ---------- */
   main { padding: 16px; }
-  .colheads { display: flex; margin-bottom: 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
-  .colheads .mc { width: 224px; flex-shrink: 0; padding-left: 4px; }
-  .colheads .cn { width: 28px; flex-shrink: 0; }
-  .colheads .wc { width: 256px; flex-shrink: 0; padding-left: 4px; }
-  .colheads .dheads { flex: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .colheads .dheads span { padding-left: 8px; font-family: var(--mono); font-weight: 400; }
-  .colheads .dheads span.out { opacity: .55; }
-  .colheads .dheads span.today { color: var(--today-head); font-weight: 700; }
 
   /* ---------- category sections ---------- */
   .cathead { display: flex; align-items: center; gap: 8px; padding: 6px 0; margin-bottom: 6px; border-bottom: 1px solid var(--border); }
@@ -121,18 +113,13 @@
   .mv-wrap { position: relative; }
   .mvbtn { font-size: 11px; }
 
-  .row { display: flex; align-items: stretch; margin-bottom: 24px; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; align-self: flex-start; }
   .card:hover { border-color: var(--border-h); box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-  .mcard { position: relative; width: 224px; flex-shrink: 0; padding: 12px; }
-  .wcard { width: 256px; flex-shrink: 0; padding: 10px 10px 8px; }
   .mtitle { font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--text); cursor: text; word-break: break-word; padding-right: 40px; }
   .pbar { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-  .wcard .pbar { margin: 0 0 6px 0; }
   .pbar .track { flex: 1; height: 6px; border-radius: 999px; background: var(--track); overflow: hidden; }
   .pbar .fill { height: 100%; border-radius: 999px; }
   .pbar .num { font-family: var(--mono); font-size: 12px; color: var(--text2); }
-  .conn { flex-shrink: 0; align-self: flex-start; margin-top: 21px; }
 
   .del { position: absolute; right: 6px; top: 6px; border: 0; background: none; font-size: 12px; color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .15s; }
   .del:hover { color: #ef4444; }
@@ -154,13 +141,6 @@
   .dashed { width: 100%; border: 1px dashed var(--border-h); border-radius: 6px; background: none; padding: 14px 0; font-size: 12px; color: var(--muted); cursor: pointer; font-family: var(--sans); }
   .dashed:hover { background: var(--fill); color: var(--text2); }
 
-  .days { flex: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: stretch; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
-  .cell { display: flex; flex-direction: column; min-height: 72px; padding: 4px; border-left: 1px solid var(--border); }
-  .cell:first-child { border-left: 0; border-radius: 8px 0 0 8px; }
-  .cell:last-child { border-radius: 0 8px 8px 0; }
-  .cell.today { background: var(--today-bg); }
-  .cell.future { opacity: .6; }
-  .cell .tasks { flex: 1; }
   .task { position: relative; display: flex; align-items: flex-start; gap: 4px; border-radius: 4px; padding: 2px 4px; }
   .task + .task { margin-top: 6px; }
   .task input[type=checkbox] { width: 14px; height: 14px; margin-top: 1px; accent-color: var(--done-cb); flex-shrink: 0; }
@@ -182,7 +162,72 @@
   .dropdown button.sel { font-weight: 600; color: var(--text); }
 
   .inline { width: 100%; padding: 3px 6px; font-size: 14px; font-family: var(--sans); color: var(--text); background: var(--card); border: 1px solid var(--border-h); border-radius: 4px; outline: none; }
-  .cell .inline, .task .inline, .target .inline { font-size: 12px; }
+  .gcell .inline, .task .inline, .target .inline { font-size: 12px; }
+
+  /* ---------- goals week grid ---------- */
+  .cobanner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 14px; background: var(--card); border: 1px solid var(--border); border-left: 3px solid #d97706; border-radius: 8px; }
+  .cobanner .coic { color: #d97706; display: inline-flex; flex-shrink: 0; }
+  .cobanner .cot { flex: 1; min-width: 0; }
+  .cobanner .cot b { display: block; font-size: 13px; color: var(--text); }
+  .cobanner .cot span { font-size: 12px; color: var(--muted); }
+  .copanel { margin: -8px 0 14px; padding: 6px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+  .corow { display: flex; align-items: center; gap: 8px; padding: 7px 0; font-size: 13px; }
+  .corow + .corow { border-top: 1px solid var(--border); }
+  .corow .ct { flex: 1; min-width: 0; color: var(--text2); overflow-wrap: break-word; }
+  .corow .ct small { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .cobadge { flex-shrink: 0; font-size: 10px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: rgba(217,119,6,.14); color: #d97706; }
+  .mvdays { display: flex; gap: 2px; flex-shrink: 0; }
+  .mvdays button { border: 1px solid var(--border); background: none; border-radius: 4px; padding: 1px 6px; font-family: var(--mono); font-size: 10px; color: var(--text2); cursor: pointer; }
+  .mvdays button:hover { border-color: var(--border-h); background: var(--fill); color: var(--text); }
+
+  .gboard { background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .ghead, .grow { display: grid; grid-template-columns: 224px repeat(7, minmax(0, 1fr)); }
+  .ghead { border-bottom: 1px solid var(--border); }
+  .ghead .gh { border: 0; background: none; border-left: 1px solid var(--border); padding: 7px 4px 6px; text-align: center; font-family: var(--mono); font-size: 10px; letter-spacing: .05em; color: var(--muted); cursor: pointer; }
+  .ghead .gh:first-child { border-left: 0; cursor: default; }
+  .ghead .gh b { display: block; font-size: 13px; font-weight: 600; color: var(--text2); }
+  .ghead .gh.today { color: var(--today-head); }
+  .ghead .gh.today b { color: var(--today-head); }
+  .ghead .gh.sel { background: var(--fill); }
+  .ghead .gh .gtdot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: var(--today-head); }
+  .grow + .grow { border-top: 1px solid var(--border); }
+  .gboard .cathead { margin: 0; padding: 6px 12px; border-bottom: 1px solid var(--border); }
+  .glabel { position: relative; padding: 10px 12px; }
+  .glabel .gt { display: flex; align-items: flex-start; gap: 7px; font-size: 13px; font-weight: 600; color: var(--text); }
+  .glabel .gt .catdot { margin-top: 3px; }
+  .glabel .gtname { cursor: text; min-width: 0; overflow-wrap: break-word; padding-right: 34px; }
+  .glabel .gsub { font-size: 11px; color: var(--muted); margin: 1px 0 6px 17px; }
+  .gcell { min-height: 64px; padding: 4px; border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+  .gcell.today { background: var(--today-bg); }
+  .gcell.future { opacity: .6; }
+  .gcell .tasks { flex: 1; }
+  .addghost { border: 0; background: none; width: 100%; padding: 4px; font-size: 11px; color: var(--muted); cursor: pointer; border-radius: 4px; font-family: var(--sans); text-align: left; }
+  .addghost:hover { background: var(--fill); color: var(--text2); }
+  .tpop { position: absolute; left: 8px; top: calc(100% - 2px); z-index: 42; width: 240px; padding: 8px; background: var(--pop); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--pop-shadow); }
+  .tpop .tpop-h { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px 2px; }
+  .gcell .task .txt { font-size: 12px; }
+
+  .tpanel { margin-top: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .tp-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .tp-head .tp-title { font-size: 13px; font-weight: 700; color: var(--text); }
+  .tp-head .tp-prog { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--text2); white-space: nowrap; }
+  .tp-head .pbar { width: 160px; margin: 0; flex-shrink: 0; }
+  .tp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .tp-h { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .tp-empty { font-size: 12px; color: var(--muted); padding: 6px 0; }
+  .tp-goal { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .tp-add { margin-top: 8px; }
+  .goalpick { position: absolute; right: 0; bottom: calc(100% + 4px); z-index: 42; width: 224px; padding: 4px 0; background: var(--pop); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--pop-shadow); }
+  .goalpick button { display: block; width: 100%; border: 0; background: none; text-align: left; padding: 5px 12px; font-size: 12px; color: var(--text2); cursor: pointer; font-family: var(--sans); }
+  .goalpick button:hover { background: var(--fill); }
+  .goalpick .catdot { display: inline-block; margin-right: 6px; }
+
+  .wsum { margin-top: 12px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color: var(--text2); }
+  .wsum .wst { font-weight: 700; color: var(--text); }
+  .wsum .ws-item { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); }
+  .wsum .ws-item .catdot { display: inline-block; }
+  .wsum .ws-all { margin-left: auto; font-weight: 700; }
+  .wsum .ws-all b { color: #22c55e; }
 
   /* ---------- view toggle ---------- */
   .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; flex-shrink: 0; }
@@ -679,6 +724,9 @@ let chipOpenFor = null; // task id whose link dropdown is open
 let paletteFor = null; // category id whose colour palette is open
 let moveFor = null; // goal id whose move-to-category dropdown is open
 let linkFor = null; // habit id whose category-link dropdown is open
+let coOpen = false; // carry-over review panel
+let targetsFor = null; // goal id whose weekly-targets popover is open
+let panelPickOpen = false; // goal picker for "+ Add Task" in the day panel
 let installEvt = null;
 let dark = localStorage.getItem(THEME_KEY) === 'dark';
 document.documentElement.classList.toggle('dark', dark);
@@ -693,10 +741,6 @@ function bar(frac, kind) {
     : kind === 'm' ? 'linear-gradient(to right,#a78bfa,#7c3aed)'
     : 'linear-gradient(to right,#60a5fa,#2563eb)';
   return `<div class="pbar"><div class="track"><div class="fill" style="width:${pct}%;background:${fill}"></div></div><span class="num">${pct}%</span></div>`;
-}
-function connector(p) {
-  const col = clamp01(p) >= 1 ? '#22c55e' : 'var(--conn)';
-  return `<svg class="conn" width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="22" y2="7" style="stroke:${col}" stroke-width="1.5"/><polygon points="22,3 28,7 22,11" style="fill:${col}"/></svg>`;
 }
 const LOGO = `<svg width="13" height="13" viewBox="0 0 32 32"><path d="M7 16.5l6 6L25 9" stroke="#111827" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
@@ -757,6 +801,208 @@ function downArrow(p) {
   return `<svg width="16" height="14" viewBox="0 0 16 14"><line x1="8" y1="0" x2="8" y2="9" style="stroke:${col}" stroke-width="1.5"/><polygon points="4,9 12,9 8,14" style="fill:${col}"/></svg>`;
 }
 
+/* ---------------- goals week grid ---------------- */
+const WDF = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const fmtDayLong = (iso) => { const d = parseISO(iso); return `${WDF[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}`; };
+/** Unfinished day tasks scheduled before the current week, oldest first. */
+function carryOvers() {
+  return state.dayTasks
+    .filter((t) => !t.done && t.date < curWeek)
+    .map((t) => {
+      const plan = findPlan(t.weekPlanId);
+      return { t, plan, goal: plan && findGoal(plan.monthGoalId) };
+    })
+    .sort((a, b) => a.t.date.localeCompare(b.t.date));
+}
+/** done/total for a week plan: targets when present, else tasks. */
+function planCounts(plan) {
+  const targets = plan ? state.weekTargets.filter((t) => t.weekPlanId === plan.id) : [];
+  const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
+  if (targets.length > 0) {
+    return { done: targets.filter((t) => targetStatus(t, tasks).done).length, total: targets.length };
+  }
+  return { done: tasks.filter((t) => t.done).length, total: tasks.length };
+}
+function fracBar(frac, text) {
+  const pct = Math.round(clamp01(frac) * 100);
+  const fill = pct === 100 ? '#22c55e' : 'linear-gradient(to right,#60a5fa,#2563eb)';
+  return `<div class="pbar"><div class="track"><div class="fill" style="width:${pct}%;background:${fill}"></div></div><span class="num">${text || pct + '%'}</span></div>`;
+}
+function coWeekLabel(x) {
+  const ws = x.plan ? x.plan.weekStart : weekStartOf(parseISO(x.t.date));
+  return `W${isoWeekNumber(ws)}, ${MON[parseISO(ws).getMonth()]} ${parseISO(ws).getDate()}`;
+}
+function coRowHtml(x, showMoveDays) {
+  const days7 = weekDays7(curWeek);
+  const move = showMoveDays
+    ? `<span class="mvdays">${days7.map((d) =>
+        `<button data-action="co-move" data-task="${x.t.id}" data-date="${d}" title="Move to ${dayLabel(d)}">${WD[parseISO(d).getDay()][0]}</button>`).join('')}</span>`
+    : `<button class="gbtn" data-action="co-move" data-task="${x.t.id}" data-date="${curDay}">Move to ${WD[parseISO(curDay).getDay()]}</button>`;
+  return `<div class="corow">
+    <input type="checkbox" data-change="task-done" data-id="${x.t.id}" title="Mark done" />
+    <span class="ct">${esc(x.t.text)}<small>${x.goal ? esc(x.goal.title) + ' · ' : ''}Originally: ${coWeekLabel(x)}</small></span>
+    <span class="cobadge">Missed</span>
+    ${move}
+    <button class="del" data-action="del-task" data-id="${x.t.id}" title="Delete task" style="position:static;opacity:1">✕</button>
+  </div>`;
+}
+function carryBannerHtml(today) {
+  const co = carryOvers();
+  if (!co.length) return '';
+  const weeks = [...new Set(co.map((x) => (x.plan ? x.plan.weekStart : weekStartOf(parseISO(x.t.date)))))];
+  const wl = weeks.map((ws) => `W${isoWeekNumber(ws)}`).join(', ');
+  return `<div class="cobanner">
+    <span class="coic"><svg width="18" height="18" viewBox="0 0 20 20"><path d="M10 3a7 7 0 1 1-6.3 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><polygon points="2.5,2.5 8,4.5 4.5,9" fill="currentColor"/></svg></span>
+    <div class="cot"><b>Carry-over tasks from previous weeks</b>
+      <span>${co.length} unfinished task${co.length === 1 ? '' : 's'} · originally planned in ${wl}</span></div>
+    <button class="gbtn" data-action="co-review">${coOpen ? 'Hide' : 'Review Tasks'} ›</button>
+  </div>
+  ${coOpen ? `<div class="copanel">${co.map((x) => coRowHtml(x, true)).join('')}</div>` : ''}`;
+}
+function tpopHtml(goal, plan, targets, tasks) {
+  return `<div class="tpop">
+    <div class="tpop-h">Weekly targets</div>
+    ${targets.map((t) => {
+      const s = targetStatus(t, tasks);
+      const derived = s.total > 0;
+      return `<div class="target" data-tid="${t.id}">
+        <input type="checkbox" data-change="target-done" data-id="${t.id}" ${s.done ? 'checked' : ''} ${derived ? 'disabled' : ''} />
+        <span class="tname ${s.done ? 'done' : ''}" data-action="edit-target" data-id="${t.id}">${esc(t.title)}</span>
+        ${derived ? `<span class="tfrac">${s.doneCount}/${s.total}</span>` : ''}
+        <button class="del" data-action="del-target" data-id="${t.id}" title="Delete target">✕</button>
+      </div>`;
+    }).join('') || '<div class="tp-empty">No targets this week.</div>'}
+    <button class="addbtn" data-action="add-target" data-goal="${goal.id}" title="Add target">+</button>
+  </div>`;
+}
+function gcellHtml(goal, plan, date, targets, tasks, today) {
+  const cellTasks = tasks.filter((t) => t.date === date).sort((a, b) => a.order - b.order);
+  const cls = ['gcell'];
+  if (date === today) cls.push('today');
+  else if (date > today) cls.push('future');
+  return `<div class="${cls.join(' ')}" data-date="${date}">
+    <div class="tasks">${cellTasks.map((t) => taskHtml(t, targets)).join('')}</div>
+    <button class="addghost" data-action="add-task" data-goal="${goal.id}" data-plan="${plan ? plan.id : ''}" data-date="${date}">+ Add</button>
+  </div>`;
+}
+function goalRowHtml(goal, days7, today) {
+  const plan = state.weekPlans.find((p) => p.monthGoalId === goal.id && p.weekStart === curWeek);
+  const targets = plan ? state.weekTargets.filter((t) => t.weekPlanId === plan.id).sort((a, b) => a.order - b.order) : [];
+  const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
+  const c = planCounts(plan);
+  const frac = c.total ? c.done / c.total : 0;
+  const cat = catOf(goal);
+  return `<div class="grow group" data-goal="${goal.id}">
+    <div class="glabel">
+      <div class="gt"><span class="catdot" style="background:${catColorOf(goal)}"></span>
+        <span class="gtname" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</span></div>
+      <div class="gsub">${cat ? esc(cat.name) : 'Uncategorized'}</div>
+      ${fracBar(frac, `${Math.round(frac * 100)}% (${c.done} / ${c.total})`)}
+      <div class="mtools">
+        <button class="del mvbtn" data-action="targets-pop" data-id="${goal.id}" title="Weekly targets">☰</button>
+        <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Move to category">▤</button>
+          ${moveFor === goal.id ? `<div class="dropdown">
+            ${state.categories.slice().sort((a, b) => a.order - b.order).map((c2) =>
+              `<button data-action="move-pick" data-id="${goal.id}" data-cat="${c2.id}" class="${c2.id === goal.categoryId ? 'sel' : ''}">${esc(c2.name)}</button>`).join('')}
+            <button data-action="move-pick" data-id="${goal.id}" data-cat="" class="${!catOf(goal) ? 'sel' : ''}">Uncategorized</button>
+          </div>` : ''}
+        </div>
+        <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete monthly goal">✕</button>
+      </div>
+      ${targetsFor === goal.id ? tpopHtml(goal, plan, targets, tasks) : ''}
+    </div>
+    ${days7.map((d) => gcellHtml(goal, plan, d, targets, tasks, today)).join('')}
+  </div>`;
+}
+function todayPanelHtml(today) {
+  const dayItems = state.dayTasks
+    .filter((t) => t.date === curDay)
+    .map((t) => {
+      const plan = findPlan(t.weekPlanId);
+      const goal = plan && findGoal(plan.monthGoalId);
+      const targets = plan ? state.weekTargets.filter((x) => x.weekPlanId === plan.id).sort((a, b) => a.order - b.order) : [];
+      return { t, goal, targets };
+    })
+    .sort((a, b) => ((a.goal || {}).order ?? 99) - ((b.goal || {}).order ?? 99) || a.t.order - b.t.order);
+  const done = dayItems.filter((x) => x.t.done).length;
+  const co = carryOvers();
+  const goals = state.monthGoals.filter((g) => g.month === monthOfWeek(curWeek)).sort((a, b) => a.order - b.order);
+  const planned = dayItems.map((x) =>
+    `<div class="task">
+      <input type="checkbox" data-change="task-done" data-id="${x.t.id}" ${x.t.done ? 'checked' : ''} />
+      <span class="tmain">
+        <span class="txt ${x.t.done ? 'done' : ''}" data-action="edit-task" data-id="${x.t.id}">${esc(x.t.text)}</span>
+        ${x.goal ? `<span class="tp-goal">${esc(x.goal.title)}</span>` : ''}
+      </span>
+      <span class="tools"><button class="del" data-action="del-task" data-id="${x.t.id}" title="Delete task">✕</button></span>
+    </div>`).join('');
+  return `<div class="tpanel">
+    <div class="tp-head">
+      <span class="tp-title">Day Details — ${fmtDayLong(curDay)}</span>
+      <span class="tp-prog">${done} of ${dayItems.length} tasks completed</span>
+      ${fracBar(dayItems.length ? done / dayItems.length : 0)}
+    </div>
+    <div class="tp-cols">
+      <div>
+        <div class="tp-h">Planned tasks (${WD[parseISO(curDay).getDay()]})</div>
+        ${planned || '<div class="tp-empty">Nothing planned for this day.</div>'}
+        <div class="goalpick-wrap" style="position:relative;display:inline-block">
+          <button class="gbtn tp-add" data-action="panel-add">+ Add Task</button>
+          ${panelPickOpen ? `<div class="goalpick">
+            ${goals.map((g) => `<button data-action="panel-add-pick" data-goal="${g.id}">
+              <span class="catdot" style="background:${catColorOf(g)}"></span>${esc(g.title)}</button>`).join('') ||
+            '<button disabled>No goals this month</button>'}
+          </div>` : ''}
+        </div>
+      </div>
+      <div>
+        <div class="tp-h">Carry-over tasks</div>
+        ${co.length ? co.map((x) => coRowHtml(x, false)).join('') : '<div class="tp-empty">Nothing carried over — all caught up.</div>'}
+      </div>
+    </div>
+  </div>`;
+}
+function weekSummaryHtml(curMonth) {
+  const items = [];
+  let dAll = 0, tAll = 0;
+  for (const s of catSections(curMonth)) {
+    let d = 0, t = 0;
+    for (const g of s.goals) {
+      const plan = state.weekPlans.find((p) => p.monthGoalId === g.id && p.weekStart === curWeek);
+      const c = planCounts(plan);
+      d += c.done; t += c.total;
+    }
+    if (t === 0) continue;
+    dAll += d; tAll += t;
+    const color = s.cat ? s.cat.color : 'var(--muted)';
+    items.push(`<span class="ws-item"><span class="catdot" style="background:${color}"></span>${s.cat ? esc(s.cat.name) : 'Uncategorized'} ${Math.round((d / t) * 100)}% (${d} / ${t})</span>`);
+  }
+  if (!items.length) return '';
+  const overall = tAll ? Math.round((dAll / tAll) * 100) : 0;
+  return `<div class="wsum"><span class="wst">Weekly Goals Summary:</span>${items.join('')}
+    <span class="ws-all">Overall: <b>${overall}%</b></span></div>`;
+}
+function renderGoalsMain(curMonth, today) {
+  const days7 = weekDays7(curWeek);
+  if (!days7.includes(curDay)) curDay = days7[0];
+  const rows = catSections(curMonth)
+    .map((s) => catHeadHtml(s.cat, s.goals) + (s.cat && s.cat.collapsed ? '' : s.goals.map((g) => goalRowHtml(g, days7, today)).join('')))
+    .join('');
+  return `<main>
+    ${carryBannerHtml(today)}
+    <div class="gboard">
+      <div class="ghead"><span class="gh"></span>${days7.map((d) =>
+        `<button class="gh ${d === today ? 'today' : ''} ${d === curDay ? 'sel' : ''}" data-action="day-select" data-date="${d}">
+          ${WD[parseISO(d).getDay()].toUpperCase()}<b>${parseISO(d).getDate()}</b>${d === today ? '<span class="gtdot"></span>' : ''}
+        </button>`).join('')}
+      </div>
+      ${rows}
+    </div>
+    ${todayPanelHtml(today)}
+    ${weekSummaryHtml(curMonth)}
+  </main>`;
+}
+
 /* ---------------- render ---------------- */
 const app = document.getElementById('app');
 
@@ -772,13 +1018,9 @@ function render() {
 
 function renderDesktop() {
   const curMonth = monthOfWeek(curWeek);
-  const days = weekDays(curWeek);
   const today = toISODate(new Date());
   const isCurWeek = curWeek === weekStartOf(new Date());
   const wn = isoWeekNumber(curWeek);
-  const rows = catSections(curMonth)
-    .map((s) => catHeadHtml(s.cat, s.goals) + (s.cat && s.cat.collapsed ? '' : s.goals.map((g) => renderRow(g, curMonth, days, today)).join('')))
-    .join('');
 
   app.innerHTML = `
     <header>
@@ -808,15 +1050,7 @@ function renderDesktop() {
         </div>` : ''}
       </div>
     </header>
-    ${state.view === 'habits' ? renderHabitsMain(today) : `<main>
-      <div class="colheads">
-        <span class="mc">MONTH</span><span class="cn"></span>
-        <span class="wc">WEEK</span><span class="cn"></span>
-        <span class="dheads">${days.map((d) =>
-          `<span class="${d.slice(0, 7) !== curMonth ? 'out' : ''} ${d === today ? 'today' : ''}">${dayLabel(d)}</span>`).join('')}</span>
-      </div>
-      ${rows}
-    </main>`}`;
+    ${state.view === 'habits' ? renderHabitsMain(today) : renderGoalsMain(curMonth, today)}`;
 }
 
 /* ---------------- habits view ---------------- */
@@ -962,69 +1196,6 @@ function renderCal() {
       ${rows}
     </div>
     <div class="callegend">Less <span class="sw h0"></span><span class="sw h1"></span><span class="sw h2"></span><span class="sw h3"></span><span class="sw h4"></span> More</div>
-  </div>`;
-}
-
-function renderRow(goal, curMonth, days, today) {
-  const plans = state.weekPlans.filter((p) => p.monthGoalId === goal.id);
-  const plan = plans.find((p) => p.weekStart === curWeek);
-  const targets = plan ? state.weekTargets.filter((t) => t.weekPlanId === plan.id).sort((a, b) => a.order - b.order) : [];
-  const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
-  const wFrac = plan ? weekProgress(targets, tasks) : 0;
-  const mFrac = goalMonthFrac(goal);
-
-  return `<div class="row group" data-goal="${goal.id}">
-    <div class="card mcard">
-
-      <div class="mtitle" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</div>
-      ${bar(mFrac, 'm')}
-      <div class="mtools">
-        <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Move to category">▤</button>
-          ${moveFor === goal.id ? `<div class="dropdown">
-            ${state.categories.slice().sort((a, b) => a.order - b.order).map((c) =>
-              `<button data-action="move-pick" data-id="${goal.id}" data-cat="${c.id}" class="${c.id === goal.categoryId ? 'sel' : ''}">${esc(c.name)}</button>`).join('')}
-            <button data-action="move-pick" data-id="${goal.id}" data-cat="" class="${!catOf(goal) ? 'sel' : ''}">Uncategorized</button>
-          </div>` : ''}
-        </div>
-        <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete monthly goal">✕</button>
-      </div>
-    </div>
-    ${connector(mFrac)}
-    <div class="card wcard">${renderWeekCard(goal, plan, targets, tasks, wFrac)}</div>
-    ${connector(wFrac)}
-    <div class="days">${days.map((d) => renderCell(goal, plan, d, targets, tasks, today)).join('')}</div>
-  </div>`;
-}
-
-function renderWeekCard(goal, plan, targets, tasks, wFrac) {
-  if (!plan) {
-    return `<button class="dashed" data-action="add-plan" data-goal="${goal.id}">+ Add weekly plan</button>`;
-  }
-  const items = targets.map((t) => {
-    const s = targetStatus(t, tasks);
-    const derived = s.total > 0;
-    return `<div class="target" data-tid="${t.id}">
-      <input type="checkbox" data-change="target-done" data-id="${t.id}" ${s.done ? 'checked' : ''} ${derived ? 'disabled' : ''} />
-      <span class="tname ${s.done ? 'done' : ''}" data-action="edit-target" data-id="${t.id}">${esc(t.title)}</span>
-      ${derived ? `<span class="tfrac">${s.doneCount}/${s.total}</span>` : ''}
-      <button class="del" data-action="del-target" data-id="${t.id}" title="Delete target">✕</button>
-    </div>`;
-  }).join('');
-  return `
-    ${bar(wFrac, 'w')}
-    ${items}
-    <button class="addbtn" data-action="add-target" data-plan="${plan.id}" data-goal="${goal.id}" title="Add target">+</button>`;
-}
-
-function renderCell(goal, plan, date, targets, tasks, today) {
-  const cellTasks = tasks.filter((t) => t.date === date).sort((a, b) => a.order - b.order);
-  const cls = ['cell'];
-  if (date === today) cls.push('today');
-  else if (date > today) cls.push('future');
-  const items = cellTasks.map((t) => taskHtml(t, targets)).join('');
-  return `<div class="${cls.join(' ')}" data-date="${date}">
-    <div class="tasks">${items}</div>
-    <button class="addbtn" data-action="add-task" data-goal="${goal.id}" data-plan="${plan ? plan.id : ''}" data-date="${date}" title="Add task">+</button>
   </div>`;
 }
 
@@ -1203,6 +1374,8 @@ app.addEventListener('click', (e) => {
   if (!e.target.closest('.catdot-wrap') && paletteFor) { paletteFor = null; closed = true; }
   if (!e.target.closest('.mv-wrap') && moveFor) { moveFor = null; closed = true; }
   if (!e.target.closest('.hl-wrap') && linkFor) { linkFor = null; closed = true; }
+  if (!e.target.closest('.glabel') && targetsFor) { targetsFor = null; closed = true; }
+  if (!e.target.closest('.goalpick-wrap') && panelPickOpen) { panelPickOpen = false; closed = true; }
   const el = e.target.closest('[data-action]');
   if (!el) { if (closed) render(); return; }
   const a = el.dataset.action;
@@ -1240,7 +1413,25 @@ app.addEventListener('click', (e) => {
       }
       render(); break;
     }
-    case 'set-day': curDay = el.dataset.date; render(); break;
+    case 'set-day': case 'day-select': curDay = el.dataset.date; render(); break;
+    case 'co-review': coOpen = !coOpen; render(); break;
+    case 'co-move': {
+      const t = findTask(el.dataset.task);
+      if (t) { t.date = el.dataset.date; t.order = state.dayTasks.filter((x) => x.weekPlanId === t.weekPlanId && x.date === t.date).length; save(); }
+      render(); break;
+    }
+    case 'targets-pop': targetsFor = targetsFor === id ? null : id; moveFor = null; render(); break;
+    case 'panel-add': panelPickOpen = !panelPickOpen; render(); break;
+    case 'panel-add-pick': {
+      const gid = el.dataset.goal;
+      panelPickOpen = false; render();
+      const btn = app.querySelector('[data-action="panel-add"]');
+      if (btn) openInline(btn, '', (v) => {
+        const plan = getOrCreateWeekPlan(gid, curWeek);
+        addTask(plan.id, curDay, v); save(); render();
+      });
+      break;
+    }
     case 'cal':
       calOpen = !calOpen;
       menuOpen = false;
@@ -1391,8 +1582,8 @@ app.addEventListener('change', (e) => {
 
 // Esc closes popover / menu / chip dropdown.
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && (calOpen || menuOpen || chipOpenFor || paletteFor || moveFor || linkFor)) {
-    calOpen = false; menuOpen = false; chipOpenFor = null; paletteFor = null; moveFor = null; linkFor = null; render();
+  if (e.key === 'Escape' && (calOpen || menuOpen || chipOpenFor || paletteFor || moveFor || linkFor || targetsFor || panelPickOpen)) {
+    calOpen = false; menuOpen = false; chipOpenFor = null; paletteFor = null; moveFor = null; linkFor = null; targetsFor = null; panelPickOpen = false; render();
   }
 });
 
