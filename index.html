@@ -1172,6 +1172,19 @@ function habitMonthHtml(month, today) {
   return rows ? `<div class="hmtitle">${formatMonth(month)} · at a glance</div>${rows}` : '';
 }
 
+function habitSummaryHtml(today) {
+  const days = weekDays7(curWeek).filter(d => d <= today);
+  const total = state.habits.length * days.length;
+  const done = state.habits.reduce((n,h) => n + days.filter(d => habitDone(h,d)).length, 0);
+  const active = state.habits.filter(h => days.some(d => habitDone(h,d))).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  return `<div class="hsummary">
+    <div class="hstat"><b>${pct}%</b><span>This week's consistency</span></div>
+    <div class="hstat"><b>${done}/${total}</b><span>Habit check-ins</span></div>
+    <div class="hstat"><b>${active}/${state.habits.length}</b><span>Habits practiced</span></div>
+  </div>`;
+}
+
 function renderHabitsMain(today) {
   const days7 = weekDays7(curWeek);
   const rows = state.habits.slice().sort((a, b) => a.order - b.order).map((h) => {
@@ -1181,6 +1194,7 @@ function renderHabitsMain(today) {
     </div>`;
   }).join('');
   return `<main>
+    ${habitSummaryHtml(today)}
     <div class="hheads">
       <span class="hn">HABIT</span>
       <span class="hd7">${days7.map((d) => `<span class="${d === today ? 'today' : ''}">${dayLabel(d)}</span>`).join('')}</span>
@@ -1480,7 +1494,22 @@ app.addEventListener('click', (e) => {
     case 'co-review': coOpen = !coOpen; render(); break;
     case 'co-move': {
       const t = findTask(el.dataset.task);
-      if (t) { t.date = el.dataset.date; t.order = state.dayTasks.filter((x) => x.weekPlanId === t.weekPlanId && x.date === t.date).length; save(); }
+      if (t) {
+        const destinationDate = el.dataset.date;
+        const oldPlan = findPlan(t.weekPlanId);
+        const goal = oldPlan && findGoal(oldPlan.monthGoalId);
+        if (goal) {
+          if (!t.originalDate) t.originalDate = t.date;
+          t.rescheduledFrom = t.rescheduledFrom || [];
+          t.rescheduledFrom.push({ date: t.date, weekPlanId: t.weekPlanId });
+          const destinationPlan = getOrCreateWeekPlan(goal.id, weekStartOf(parseISO(destinationDate)));
+          t.weekPlanId = destinationPlan.id;
+          t.targetId = undefined;
+          t.date = destinationDate;
+          t.order = state.dayTasks.filter((x) => x !== t && x.weekPlanId === t.weekPlanId && x.date === t.date).length;
+          save();
+        }
+      }
       render(); break;
     }
     case 'targets-pop': targetsFor = targetsFor === id ? null : id; moveFor = null; render(); break;
