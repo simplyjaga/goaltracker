@@ -451,11 +451,18 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .glabel,.gcell,.gcell .tasks,.task,.task .tmain,.tp-cols>div,.corow .ct,.grow{min-width:0}
 .glabel .gtname,.task .txt,.tp-goal,.corow .ct,.hmname,.hname{overflow-wrap:anywhere}
 .month-task{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gboard{background:transparent;border:0;overflow:visible;display:grid;gap:12px}
-.ghead{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#19182f}
-.grow{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
-.grow:hover{border-color:var(--border-h)}
-.gboard .cathead{border:1px solid var(--border);border-radius:10px;background:#141327;margin:0}
+/* one cohesive board: slim day header, goal rows share the card */
+.gboard{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:block}
+.ghead{border:0;border-bottom:1px solid var(--border);background:#19182f}
+.ghead .gh{height:44px;padding:6px 3px;font-size:10px}
+.ghead .gh b{font-size:13px}
+.ghead .gh.sel{border-radius:0}
+.grow{border:0;border-radius:0}
+.grow + .grow{border-top:1px solid var(--border)}
+.grow:hover{background:rgba(139,92,246,.05)}
+.grow:hover .glabel{background:#191932}
+.gboard .cathead{border:0;border-bottom:1px solid var(--border);background:#121225;margin:0}
+.gboard + .month-side{margin-top:18px}
 
 </style>
 </style>
