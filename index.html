@@ -796,7 +796,6 @@ if (!Array.isArray(state.habits)) state.habits = [];
 if (!Array.isArray(state.exploreItems)) state.exploreItems = [];
 if (!['habits','explore'].includes(state.view)) state.view = 'goals';
 ensureCategories();
-migrateGoals();
 navigator.storage?.persist?.();
 
 /* ---------------- mutations ---------------- */
@@ -812,31 +811,6 @@ const catColorOf = (goal) => (catOf(goal) || {}).color || 'var(--border-h)';
 function addGoal(title, categoryId) {
   const order = state.monthGoals.filter((g) => g.categoryId === categoryId && !g.closed).length;
   state.monthGoals.push({ id: uid(), month: monthKey(new Date()), title, order, categoryId });
-}
-/** Merge duplicate per-month goals (same title + category) into the earliest one. */
-function migrateGoals() {
-  const key = (g) => `${g.categoryId || ''}|${(g.title || '').trim().toLowerCase()}`;
-  const canon = new Map();
-  for (const g of state.monthGoals || []) {
-    const cur = canon.get(key(g));
-    if (!cur || (g.month || '') < (cur.month || '')) canon.set(key(g), g);
-  }
-  const canonIds = new Set([...canon.values()].map((g) => g.id));
-  const goalRemap = new Map((state.monthGoals || []).map((g) => [g.id, canon.get(key(g)).id]));
-  const keepByKey = new Map();
-  const planRemap = new Map();
-  const keptPlans = [];
-  for (const p of state.weekPlans || []) {
-    p.monthGoalId = goalRemap.get(p.monthGoalId) || p.monthGoalId;
-    const k = `${p.monthGoalId}|${p.weekStart}`;
-    if (keepByKey.has(k)) planRemap.set(p.id, keepByKey.get(k));
-    else { keepByKey.set(k, p.id); keptPlans.push(p); }
-  }
-  state.weekPlans = keptPlans;
-  for (const t of state.weekTargets || []) { const r = planRemap.get(t.weekPlanId); if (r) t.weekPlanId = r; }
-  for (const t of state.dayTasks || []) { const r = planRemap.get(t.weekPlanId); if (r) t.weekPlanId = r; }
-  state.monthGoals = (state.monthGoals || []).filter((g) => canonIds.has(g.id));
-  for (const it of state.exploreItems || []) { const r = goalRemap.get(it.goalId); if (r) it.goalId = r; }
 }
 function addCategory(name) {
   const used = new Set(state.categories.map((c) => c.color));
@@ -1970,7 +1944,6 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
       if (!Array.isArray(state.exploreItems)) state.exploreItems = [];
       if (!['habits','explore'].includes(state.view)) state.view = 'goals';
       ensureCategories();
-      migrateGoals();
       menuOpen = false;
       save(); render();
     }
