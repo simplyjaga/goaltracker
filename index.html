@@ -466,8 +466,12 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .ghead .gh:first-child{display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:default}
 /* popovers stay anchored inside the goal label, never clipped at the board edge */
 .tpop{left:8px;right:auto;top:8px;width:min(300px,calc(100vw - 240px));max-height:70vh;overflow-y:auto;z-index:60}
-.glabel .mv-wrap{position:static}
-.glabel .dropdown{left:8px;right:auto;top:32px;width:max-content;max-width:260px;max-height:60vh;overflow-y:auto;z-index:60}
+.glabel .mv-wrap{position:relative}
+.glabel .dropdown{left:auto;right:0;top:calc(100% + 6px);width:max-content;max-width:260px;max-height:60vh;overflow-y:auto;z-index:60}
+.gsection:last-child .grow:last-child .dropdown{top:auto;bottom:calc(100% + 6px)}
+.gsection:last-child .grow:last-child .tpop{top:auto;bottom:8px}
+.gsection .cathead:last-child{border-bottom:0;border-radius:11px}
+.ghead .gh:first-child{border-left:0}
 .month-task{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* one parent card containing day header + nested category sections */
 .gboard{background:#131226;border:1px solid var(--border);border-radius:14px;padding:10px;display:grid;gap:10px}
