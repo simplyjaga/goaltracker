@@ -449,7 +449,7 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .goalpick{left:0;right:auto;bottom:calc(100% + 4px);min-width:210px;max-width:min(320px,80vw);max-height:280px;overflow-y:auto;z-index:60}
 .goalpick button{overflow-wrap:anywhere}
 .glabel,.gcell,.gcell .tasks,.task,.task .tmain,.tp-cols>div,.corow .ct,.grow{min-width:0}
-.glabel .gtname,.task .txt,.tp-goal,.corow .ct,.hmname,.hname{overflow-wrap:anywhere}
+.glabel .gtname,.glabel .gsub,.task .txt,.tp-goal,.corow .ct,.hmname,.hname{overflow-wrap:anywhere}
 .month-task{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* one cohesive board: slim day header, goal rows share the card */
 .gboard{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:block}
@@ -1144,7 +1144,7 @@ function monthGoalsMain(month, today) {
   }).join('');
   const monthTasks = state.dayTasks.filter(t => t.date.startsWith(month));
   const done = monthTasks.filter(t => t.done).length;
-  return `<main class="month-layout"><section class="month-main"><div class="page-toolbar"><h2 class="month-heading"><span class="cal-ico">▦</span>${formatMonth(month)}</h2><button class="primary-action" data-action="add-cat">＋ Add category</button></div>
+  return `<main class="month-layout"><section class="month-main">
     <div class="month-board">
       ${['MON','TUE','WED','THU','FRI','SAT','SUN'].map(d=>`<div class="month-dow">${d}</div>`).join('')}
       ${cells}
@@ -1158,7 +1158,7 @@ function renderGoalsMain(curMonth, today) {
   const rows = catSections(curMonth)
     .map((s) => catHeadHtml(s.cat, s.goals) + (s.cat && s.cat.collapsed ? '' : s.goals.map((g) => goalRowHtml(g, days7, today)).join('')))
     .join('');
-  return `<main><div class="page-toolbar"><h2 class="section-heading">Goals</h2><button class="primary-action" data-action="add-cat">＋ Add category</button></div>
+  return `<main>
     <div class="gboard">
       <div class="ghead"><span class="gh"></span>${days7.map((d) =>
         `<button class="gh ${d === today ? 'today' : ''} ${d === curDay ? 'sel' : ''}" data-action="day-select" data-date="${d}">
@@ -1254,6 +1254,7 @@ function renderDesktop() {
         <header class="topbar">
           <div class="switcher"><button class="gbtn" data-action="prev-period" aria-label="Previous period">‹</button><span class="wlabel">${periodLabel}</span><button class="gbtn" data-action="next-period" aria-label="Next period">›</button></div>
           <div class="spacer"></div>
+          ${state.view === 'goals' ? '<button class="primary-action" data-action="add-cat">＋ Add category</button>' : ''}
           ${state.view === 'goals' ? `<div class="view-tabs"><button class="${goalsPeriod === 'week' ? 'active' : ''}" data-action="goals-period" data-period="week">▣ Weekly</button><button class="${goalsPeriod === 'month' ? 'active' : ''}" data-action="goals-period" data-period="month">▦ Monthly</button></div>` : ''}
           ${isCurWeek ? '' : '<button class="gbtn iconbtn" data-action="today">Today</button>'}
           <div class="cal-wrap"><button class="gbtn iconbtn" data-action="cal" title="Calendar">▦</button>${calOpen ? renderCal() : ''}</div>
