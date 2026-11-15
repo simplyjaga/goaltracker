@@ -354,7 +354,7 @@
 <style id="approved-visual-redesign">
 :root{--bg:#0b0b18;--header-bg:#101024;--card:#17172c;--fill:#20203d;--border:#302d58;--border-h:#51458a;--text:#f4f1ff;--text2:#c3bddf;--muted:#9189b4;--today-bg:rgba(119,62,255,.17);--today-head:#d5baff;--track:#302d52;--conn:#51447d;--done-cb:#8b3dff;--ok:#26d9a0;--linkchip-bg:#29234b;--linkchip-c:#c6a9ff;--pop:#1a1830;--pop-shadow:0 16px 48px rgba(0,0,0,.45);--dot-o:#5b5683;--dot-h:#8174ba;--cal-sel:#29204e;--cal-hov:#211d3d;--yellow:#ffbf24}
 html.dark{--bg:#0b0b18;--header-bg:#101024;--card:#17172c;--fill:#20203d;--border:#302d58;--border-h:#51458a;--text:#f4f1ff;--text2:#c3bddf;--muted:#9189b4;--today-bg:rgba(119,62,255,.17);--today-head:#d5baff;--track:#302d52;--conn:#51447d;--done-cb:#8b3dff;--ok:#26d9a0;--linkchip-bg:#29234b;--linkchip-c:#c6a9ff;--pop:#1a1830}
-html:not(.dark){--bg:#f4f2fb;--header-bg:#fff;--card:#fff;--fill:#f0edfa;--border:#ded8ef;--border-h:#b8a8e2;--text:#211b36;--text2:#51486b;--muted:#817895;--today-bg:#f0e9ff;--today-head:#7138d7;--track:#e5e0f0;--conn:#c9c0df;--pop:#fff}
+html:not(.dark){color-scheme:dark}
 body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min-height:100vh}#app{min-height:100vh}
 .app-shell{min-height:100vh;display:grid;grid-template-columns:176px minmax(0,1fr);width:100%;max-width:100%;overflow-x:hidden}
 .sidebar{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:24px 14px 16px;background:linear-gradient(180deg,#111126,#0e0e1d);border-right:1px solid #302d58;color:#eee9ff}
@@ -442,6 +442,20 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .app-dialog-actions button{border-radius:8px;padding:9px 14px;font:600 13px var(--sans);cursor:pointer}
 .dialog-cancel{border:1px solid var(--border-h);background:transparent;color:var(--text2)}
 .dialog-submit{border:1px solid #7541d4;background:linear-gradient(110deg,#7131dc,#5224b2);color:white}
+
+/* --- fixes: Today button, goal picker, text overflow, row separation --- */
+.topbar .gbtn[data-action="today"]{width:auto;height:36px;border-radius:18px;padding:0 14px;font-size:13px;font-weight:600;flex-shrink:0}
+.topbar{flex-wrap:nowrap;overflow-x:auto}
+.goalpick{left:0;right:auto;bottom:calc(100% + 4px);min-width:210px;max-width:min(320px,80vw);max-height:280px;overflow-y:auto;z-index:60}
+.goalpick button{overflow-wrap:anywhere}
+.glabel,.gcell,.gcell .tasks,.task,.task .tmain,.tp-cols>div,.corow .ct,.grow{min-width:0}
+.glabel .gtname,.task .txt,.tp-goal,.corow .ct,.hmname,.hname{overflow-wrap:anywhere}
+.month-task{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gboard{background:transparent;border:0;overflow:visible;display:grid;gap:12px}
+.ghead{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#19182f}
+.grow{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
+.grow:hover{border-color:var(--border-h)}
+.gboard .cathead{border:1px solid var(--border);border-radius:10px;background:#141327;margin:0}
 
 </style>
 </style>
@@ -532,7 +546,6 @@ function monthProgress(weekProgressList) {
 
 /* ---------------- storage ---------------- */
 const KEY = 'goal-tracker-v1';
-const THEME_KEY = 'goal-tracker-theme';
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36));
 
 let state = null;
@@ -847,8 +860,8 @@ let panelPickOpen = false; // goal picker for "+ Add Task" in the day panel
 let goalsPeriod = 'week';
 let curMonthView = monthOfWeek(curWeek);
 let installEvt = null;
-let dark = localStorage.getItem(THEME_KEY) === 'dark';
-document.documentElement.classList.toggle('dark', dark);
+// Dark mode only — the .dark class unlocks the dark variants of base styles.
+document.documentElement.classList.add('dark');
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -1256,7 +1269,6 @@ function renderDesktop() {
           ${state.view === 'goals' ? `<div class="view-tabs"><button class="${goalsPeriod === 'week' ? 'active' : ''}" data-action="goals-period" data-period="week">▣ Weekly</button><button class="${goalsPeriod === 'month' ? 'active' : ''}" data-action="goals-period" data-period="month">▦ Monthly</button></div>` : ''}
           ${isCurWeek ? '' : '<button class="gbtn iconbtn" data-action="today">Today</button>'}
           <div class="cal-wrap"><button class="gbtn iconbtn" data-action="cal" title="Calendar">▦</button>${calOpen ? renderCal() : ''}</div>
-          <button class="gbtn iconbtn" data-action="theme" title="Toggle theme">${dark ? '☀' : '☾'}</button>
           <div class="menu-wrap"><button class="gbtn iconbtn" data-action="menu" aria-label="Menu">⋯</button>${menuOpen ? `<div class="menu">
             <button data-action="export">Export backup (JSON)</button><button data-action="import">Import backup (JSON)</button>
             ${installEvt ? '<button data-action="install">Install app</button>' : ''}
@@ -1483,7 +1495,6 @@ function renderPhone() {
         <button class="gbtn" data-action="menu" aria-label="Menu">⋯</button>
         ${menuOpen ? `<div class="menu">
           <button data-action="cal">Month calendar…</button>
-          <button data-action="theme">${dark ? 'Light mode' : 'Dark mode'}</button>
           <button data-action="export">Export backup (JSON)</button>
           <button data-action="import">Import backup (JSON)</button>
           ${installEvt ? '<button data-action="install">Install app</button>' : ''}
@@ -1727,11 +1738,6 @@ app.addEventListener('click', (e) => {
     case 'cal-prev': calViewMonth = shiftMonth(calViewMonth, -1); render(); break;
     case 'cal-next': calViewMonth = shiftMonth(calViewMonth, 1); render(); break;
     case 'cal-week': setWeek(el.dataset.week); calOpen = false; render(); break;
-    case 'theme':
-      dark = !dark;
-      document.documentElement.classList.toggle('dark', dark);
-      localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
-      render(); break;
     case 'menu': menuOpen = !menuOpen; render(); break;
     case 'cloud-sync': menuOpen = false; render(); cloudSync(); break;
     case 'export': doExport(); menuOpen = false; render(); break;
