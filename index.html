@@ -854,7 +854,6 @@ let chipOpenFor = null; // task id whose link dropdown is open
 let paletteFor = null; // category id whose colour palette is open
 let moveFor = null; // goal id whose move-to-category dropdown is open
 let linkFor = null; // habit id whose category-link dropdown is open
-let coOpen = false; // carry-over review panel
 let targetsFor = null; // goal id whose weekly-targets popover is open
 let panelPickOpen = false; // goal picker for "+ Add Task" in the day panel
 let goalsPeriod = 'week';
@@ -978,19 +977,6 @@ function coRowHtml(x, showMoveDays) {
     <button class="del" data-action="del-task" data-id="${x.t.id}" title="Delete task" style="position:static;opacity:1">✕</button>
   </div>`;
 }
-function carryBannerHtml(today) {
-  const co = carryOvers();
-  if (!co.length) return '';
-  const weeks = [...new Set(co.map((x) => (x.plan ? x.plan.weekStart : weekStartOf(parseISO(x.t.date)))))];
-  const wl = weeks.map((ws) => `W${isoWeekNumber(ws)}`).join(', ');
-  return `<div class="cobanner">
-    <span class="coic"><svg width="18" height="18" viewBox="0 0 20 20"><path d="M10 3a7 7 0 1 1-6.3 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><polygon points="2.5,2.5 8,4.5 4.5,9" fill="currentColor"/></svg></span>
-    <div class="cot"><b>Carry-over tasks from previous weeks</b>
-      <span>${co.length} unfinished task${co.length === 1 ? '' : 's'} · originally planned in ${wl}</span></div>
-    <button class="gbtn" data-action="co-review">${coOpen ? 'Hide' : 'Review Tasks'} ›</button>
-  </div>
-  ${coOpen ? `<div class="copanel">${co.map((x) => coRowHtml(x, true)).join('')}</div>` : ''}`;
-}
 function tpopHtml(goal, plan, targets, tasks) {
   return `<div class="tpop">
     <div class="tpop-h">Weekly targets</div>
@@ -1094,25 +1080,24 @@ function todayPanelHtml(today) {
     </div>
   </div>`;
 }
-function weekSummaryHtml(curMonth) {
-  const items = [];
-  let dAll = 0, tAll = 0;
-  for (const s of catSections(curMonth)) {
-    let d = 0, t = 0;
-    for (const g of s.goals) {
-      const plan = state.weekPlans.find((p) => p.monthGoalId === g.id && p.weekStart === curWeek);
-      const c = planCounts(plan);
-      d += c.done; t += c.total;
-    }
-    if (t === 0) continue;
-    dAll += d; tAll += t;
+/** Week overview card — same visual module as the month overview. */
+function weekOverviewHtml(curMonth) {
+  const wn = isoWeekNumber(curWeek);
+  const sections = catSections(curMonth);
+  const planIdsOf = (goals) => new Set(
+    state.weekPlans.filter((p) => p.weekStart === curWeek && goals.some((g) => g.id === p.monthGoalId)).map((p) => p.id));
+  const allPlanIds = planIdsOf(sections.flatMap((s) => s.goals));
+  const items = state.dayTasks.filter((t) => allPlanIds.has(t.weekPlanId));
+  const done = items.filter((t) => t.done).length;
+  const cats = sections.map((s) => {
+    const pids = planIdsOf(s.goals);
+    const its = items.filter((t) => pids.has(t.weekPlanId));
+    if (!its.length) return '';
+    const c = its.filter((t) => t.done).length;
     const color = s.cat ? s.cat.color : 'var(--muted)';
-    items.push(`<span class="ws-item"><span class="catdot" style="background:${color}"></span>${s.cat ? esc(s.cat.name) : 'Uncategorized'} ${Math.round((d / t) * 100)}% (${d} / ${t})</span>`);
-  }
-  if (!items.length) return '';
-  const overall = tAll ? Math.round((dAll / tAll) * 100) : 0;
-  return `<div class="wsum"><span class="wst">Weekly Goals Summary:</span>${items.join('')}
-    <span class="ws-all">Overall: <b>${overall}%</b></span></div>`;
+    return `<div class="month-cat"><span class="catdot" style="background:${color}"></span><span>${esc(s.cat ? s.cat.name : 'Uncategorized')}</span><b>${Math.round((c / its.length) * 100)}%</b><small>${c}/${its.length}</small></div>`;
+  }).join('');
+  return `<div class="overview-card"><h3>▥ W${wn} Overview</h3><div class="overview-total"><strong>${items.length ? Math.round((done / items.length) * 100) : 0}%</strong><span>${done} / ${items.length}<br/>Tasks done</span></div>${cats || '<span class="tp-empty">No tasks planned this week.</span>'}</div>`;
 }
 
 function monthGoalsMain(month, today) {
@@ -1139,7 +1124,6 @@ function monthGoalsMain(month, today) {
       <button class="addghost" data-action="month-day-select" data-date="${d}">+ Add / view</button>
     </div>`;
   }).join('');
-  const goals = state.monthGoals.filter(g => g.month === month);
   const categorySummary = catSections(month).map((section) => {
     const ids = new Set(section.goals.map(g => g.id));
     const planIds = new Set(state.weekPlans.filter(p => ids.has(p.monthGoalId)).map(p => p.id));
@@ -1157,8 +1141,7 @@ function monthGoalsMain(month, today) {
     <div class="month-board">
       ${['MON','TUE','WED','THU','FRI','SAT','SUN'].map(d=>`<div class="month-dow">${d}</div>`).join('')}
       ${cells}
-    </div>
-    <div class="wsum"><span class="wst">${formatMonth(month)} summary</span><span>${goals.length} goals</span><span>${done} / ${monthTasks.length} tasks completed</span><span class="ws-all">${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}% complete</span></div></section><section class="month-side"><div class="overview-card"><h3>▥ ${formatMonth(month)} Overview</h3><div class="overview-total"><strong>${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}%</strong><span>${done} / ${monthTasks.length}<br/>Tasks done</span></div>${categorySummary || '<span class="tp-empty">No category tasks planned yet.</span>'}</div>${todayPanelHtml(today)}</section></main>`;
+    </div></section><section class="month-side"><div class="overview-card"><h3>▥ ${formatMonth(month)} Overview</h3><div class="overview-total"><strong>${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}%</strong><span>${done} / ${monthTasks.length}<br/>Tasks done</span></div>${categorySummary || '<span class="tp-empty">No category tasks planned yet.</span>'}</div>${todayPanelHtml(today)}</section></main>`;
 }
 
 function renderGoalsMain(curMonth, today) {
@@ -1169,7 +1152,6 @@ function renderGoalsMain(curMonth, today) {
     .map((s) => catHeadHtml(s.cat, s.goals) + (s.cat && s.cat.collapsed ? '' : s.goals.map((g) => goalRowHtml(g, days7, today)).join('')))
     .join('');
   return `<main><div class="page-toolbar"><h2 class="section-heading">Goals</h2><button class="primary-action" data-action="add-cat">＋ Add category</button></div>
-    ${carryBannerHtml(today)}
     <div class="gboard">
       <div class="ghead"><span class="gh"></span>${days7.map((d) =>
         `<button class="gh ${d === today ? 'today' : ''} ${d === curDay ? 'sel' : ''}" data-action="day-select" data-date="${d}">
@@ -1178,8 +1160,7 @@ function renderGoalsMain(curMonth, today) {
       </div>
       ${rows}
     </div>
-    ${todayPanelHtml(today)}
-    ${weekSummaryHtml(curMonth)}
+    <section class="month-side">${weekOverviewHtml(curMonth)}${todayPanelHtml(today)}</section>
   </main>`;
 }
 
@@ -1656,7 +1637,6 @@ app.addEventListener('click', (e) => {
       render(); break;
     }
     case 'set-day': case 'day-select': curDay = el.dataset.date; render(); break;
-    case 'co-review': coOpen = !coOpen; render(); break;
     case 'co-move': {
       const t = findTask(el.dataset.task);
       if (t) {
