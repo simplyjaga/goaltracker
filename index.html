@@ -431,6 +431,17 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
  .dialog-cancel{border:1px solid var(--border-h);background:transparent;color:var(--text2)}
  .dialog-submit{border:1px solid #7541d4;background:linear-gradient(110deg,#7131dc,#5224b2);color:white}
 }
+/* Dialog styling is shared by sign-in, Explore & Later, and cloud confirmations. */
+.app-dialog-backdrop{position:fixed;inset:0;z-index:11000;background:rgba(4,5,15,.72);display:grid;place-items:center;padding:20px;backdrop-filter:blur(4px)}
+.app-dialog{width:min(100%,480px);max-height:min(88vh,760px);overflow:auto;padding:22px;border:1px solid var(--border-h);border-radius:16px;background:var(--card);color:var(--text);box-shadow:0 20px 60px rgba(0,0,0,.42)}
+.app-dialog-head h2{margin:0 0 5px;font-size:20px}.app-dialog-head p{margin:0 0 18px;color:var(--text2);font-size:13px;line-height:1.5}
+.app-dialog-fields{display:grid;gap:13px}.dialog-field{display:grid;gap:5px;color:var(--text2);font-size:12px;font-weight:600}
+.dialog-field input,.dialog-field textarea,.dialog-field select{width:100%;min-width:0;border:1px solid var(--border-h);border-radius:8px;background:var(--fill);color:var(--text);padding:10px 11px;font:14px var(--sans);outline:none}
+.dialog-field input:focus,.dialog-field textarea:focus,.dialog-field select:focus{border-color:#8b5cf6;box-shadow:0 0 0 2px rgba(139,92,246,.18)}
+.dialog-field textarea{resize:vertical}.app-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.app-dialog-actions button{border-radius:8px;padding:9px 14px;font:600 13px var(--sans);cursor:pointer}
+.dialog-cancel{border:1px solid var(--border-h);background:transparent;color:var(--text2)}
+.dialog-submit{border:1px solid #7541d4;background:linear-gradient(110deg,#7131dc,#5224b2);color:white}
 
 </style>
 </style>
@@ -621,7 +632,7 @@ function showCloudSyncOptions(cloud, user) {
         save();
         render();
         close();
-        alert('Cloud data downloaded to this browser.');
+        await showAppNotice('Download complete', 'The cloud data is now loaded in this browser.');
       } catch (err) {
         overlay.remove();
         reject(err);
@@ -630,10 +641,11 @@ function showCloudSyncOptions(cloud, user) {
 
     panel.querySelector('[data-cloud-choice="upload"]').addEventListener('click', async () => {
       if (!hasTrackerData(state)) {
-        alert('This browser has no goals, plans, tasks or habits to upload.');
+        await showAppNotice('Nothing to upload yet', 'This browser has no goals, plans, tasks, habits or saved Explore items to upload.');
         return;
       }
-      if (!confirm('Replace the cloud backup with the data currently open in this browser? This cannot be undone from Supabase. Export a JSON backup first.')) return;
+      const proceed = await showAppDialog({ title: 'Replace cloud backup?', description: 'This will replace the existing cloud backup with the data currently open in this browser. Export a JSON backup first if you need a separate copy.', fields: [], submitLabel: 'Upload and replace backup' });
+      if (!proceed) return;
       try {
         const { data: updated, error } = await supabaseClient
           .from('goal_tracker_data')
@@ -648,11 +660,11 @@ function showCloudSyncOptions(cloud, user) {
           .maybeSingle();
         if (error) throw error;
         if (!updated) {
-          alert('The cloud data changed after it was read. Nothing was overwritten. Open Cloud sync again and review the latest version.');
+          await showAppNotice('Cloud backup changed', 'Nothing was overwritten. Open Cloud Sync again to review the latest version.');
           return;
         }
         close();
-        alert('Cloud backup updated to version ' + updated.version + '.');
+        await showAppNotice('Cloud backup updated', 'Your cloud backup is now version ' + updated.version + '.');
       } catch (err) {
         overlay.remove();
         reject(err);
@@ -663,7 +675,7 @@ function showCloudSyncOptions(cloud, user) {
 
 async function cloudSync() {
   if (!supabaseClient) {
-    alert('Cloud sync could not load. Check your internet connection and reload the app.');
+    await showAppNotice('Cloud sync unavailable', 'The cloud sync service could not load. Check your internet connection and reload the app.');
     return;
   }
 
@@ -712,7 +724,7 @@ async function cloudSync() {
     return;
   } catch (err) {
     console.error('Cloud sync failed:', err);
-    alert('Cloud sync failed: ' + (err.message || String(err)));
+    await showAppNotice('Cloud sync failed', err.message || String(err));
   }
 }
 
