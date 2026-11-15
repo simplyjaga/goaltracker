@@ -746,6 +746,7 @@ let coOpen = false; // carry-over review panel
 let targetsFor = null; // goal id whose weekly-targets popover is open
 let panelPickOpen = false; // goal picker for "+ Add Task" in the day panel
 let goalsPeriod = 'week';
+let curMonthView = monthOfWeek(curWeek);
 let installEvt = null;
 let dark = localStorage.getItem(THEME_KEY) === 'dark';
 document.documentElement.classList.toggle('dark', dark);
@@ -1075,7 +1076,7 @@ function render() {
 }
 
 function renderDesktop() {
-  const curMonth = monthOfWeek(curWeek);
+  const curMonth = state.view === 'goals' && goalsPeriod === 'month' ? curMonthView : monthOfWeek(curWeek);
   const today = toISODate(new Date());
   const isCurWeek = curWeek === weekStartOf(new Date());
   const wn = isoWeekNumber(curWeek);
@@ -1286,6 +1287,7 @@ function taskHtml(t, targets) {
     <span class="tmain">
       <span class="txt ${t.done ? 'done' : ''}" data-action="edit-task" data-id="${t.id}">${esc(t.text)}</span>
       ${linked ? `<div class="tlink" title="${esc(linked.title)}">⚑ ${esc(linked.title)}</div>` : ''}
+      ${t.originalDate && t.originalDate !== t.date ? `<div class="tlink">Moved from ${dayLabel(t.originalDate)}</div>` : ''}
     </span>
     <span class="tools">${chip}<button class="del" data-action="del-task" data-id="${t.id}" title="Delete task">✕</button></span>
   </div>`;
@@ -1469,9 +1471,9 @@ app.addEventListener('click', (e) => {
     case 'prev-week': setWeek(toISODate(addDays(parseISO(curWeek), -7))); render(); break;
     case 'next-week': setWeek(toISODate(addDays(parseISO(curWeek), 7))); render(); break;
     case 'goals-period': goalsPeriod = el.dataset.period === 'month' ? 'month' : 'week'; render(); break;
-    case 'prev-period': if (goalsPeriod === 'month' && state.view === 'goals') { const [y,m] = curMonth.split('-').map(Number); curWeek = weekStartOf(new Date(y,m-2,1)); curDay = curWeek; } else setWeek(toISODate(addDays(parseISO(curWeek),-7))); render(); break;
-    case 'next-period': if (goalsPeriod === 'month' && state.view === 'goals') { const [y,m] = curMonth.split('-').map(Number); curWeek = weekStartOf(new Date(y,m,1)); curDay = curWeek; } else setWeek(toISODate(addDays(parseISO(curWeek),7))); render(); break;
-    case 'month-day-select': curDay = el.dataset.date; curWeek = weekStartOf(parseISO(curDay)); render(); break;
+    case 'prev-period': if (goalsPeriod === 'month' && state.view === 'goals') { curMonthView = shiftMonth(curMonthView, -1); } else setWeek(toISODate(addDays(parseISO(curWeek),-7))); render(); break;
+    case 'next-period': if (goalsPeriod === 'month' && state.view === 'goals') { curMonthView = shiftMonth(curMonthView, 1); } else setWeek(toISODate(addDays(parseISO(curWeek),7))); render(); break;
+    case 'month-day-select': curDay = el.dataset.date; curMonthView = curDay.slice(0,7); curWeek = weekStartOf(parseISO(curDay)); render(); break;
     case 'today': {
       curWeek = weekStartOf(new Date());
       const wd = weekDays(curWeek), t = toISODate(new Date());
