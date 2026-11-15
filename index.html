@@ -1086,10 +1086,11 @@ function renderDesktop() {
       <h1>Goal Tracker</h1>
       ${segHtml()}
       <div class="switcher">
-        <button class="gbtn" data-action="prev-week" aria-label="Previous week">◀</button>
-        <span class="wlabel">W${wn} · ${esc(formatWeekRangeShort(curWeek))}</span>
-        <button class="gbtn" data-action="next-week" aria-label="Next week">▶</button>
+        <button class="gbtn" data-action="prev-period" aria-label="Previous period">◀</button>
+        <span class="wlabel">${state.view === 'goals' && goalsPeriod === 'month' ? formatMonth(curMonth) : `W${wn} · ${esc(formatWeekRangeShort(curWeek))}`}</span>
+        <button class="gbtn" data-action="next-period" aria-label="Next period">▶</button>
       </div>
+      ${state.view === 'goals' ? `<div class="period-toggle"><button class="${goalsPeriod === 'week' ? 'sel' : ''}" data-action="goals-period" data-period="week">Week</button><button class="${goalsPeriod === 'month' ? 'sel' : ''}" data-action="goals-period" data-period="month">Month</button></div>` : ''}
       ${isCurWeek ? '' : '<button class="gbtn" data-action="today">Today</button>'}
       <div class="spacer"></div>
       <div class="cal-wrap">
@@ -1453,6 +1454,10 @@ app.addEventListener('click', (e) => {
     case 'set-view': state.view = el.dataset.v === 'habits' ? 'habits' : 'goals'; save(); render(); break;
     case 'prev-week': setWeek(toISODate(addDays(parseISO(curWeek), -7))); render(); break;
     case 'next-week': setWeek(toISODate(addDays(parseISO(curWeek), 7))); render(); break;
+    case 'goals-period': goalsPeriod = el.dataset.period === 'month' ? 'month' : 'week'; render(); break;
+    case 'prev-period': if (goalsPeriod === 'month' && state.view === 'goals') { const [y,m] = curMonth.split('-').map(Number); curWeek = weekStartOf(new Date(y,m-2,1)); curDay = curWeek; } else setWeek(toISODate(addDays(parseISO(curWeek),-7))); render(); break;
+    case 'next-period': if (goalsPeriod === 'month' && state.view === 'goals') { const [y,m] = curMonth.split('-').map(Number); curWeek = weekStartOf(new Date(y,m,1)); curDay = curWeek; } else setWeek(toISODate(addDays(parseISO(curWeek),7))); render(); break;
+    case 'month-day-select': curDay = el.dataset.date; curWeek = weekStartOf(parseISO(curDay)); render(); break;
     case 'today': {
       curWeek = weekStartOf(new Date());
       const wd = weekDays(curWeek), t = toISODate(new Date());
