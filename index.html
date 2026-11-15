@@ -796,6 +796,7 @@ if (!Array.isArray(state.habits)) state.habits = [];
 if (!Array.isArray(state.exploreItems)) state.exploreItems = [];
 if (!['habits','explore'].includes(state.view)) state.view = 'goals';
 ensureCategories();
+migrateGoals();
 navigator.storage?.persist?.();
 
 /* ---------------- mutations ---------------- */
@@ -808,9 +809,34 @@ const findCat = (id) => state.categories.find((c) => c.id === id);
 const catOf = (goal) => state.categories.find((c) => c.id === goal.categoryId);
 const catColorOf = (goal) => (catOf(goal) || {}).color || 'var(--border-h)';
 
-function addMonthGoal(month, title, categoryId) {
-  const order = state.monthGoals.filter((g) => g.month === month && g.categoryId === categoryId).length;
-  state.monthGoals.push({ id: uid(), month, title, order, categoryId });
+function addGoal(title, categoryId) {
+  const order = state.monthGoals.filter((g) => g.categoryId === categoryId && !g.closed).length;
+  state.monthGoals.push({ id: uid(), month: monthKey(new Date()), title, order, categoryId });
+}
+/** Merge duplicate per-month goals (same title + category) into the earliest one. */
+function migrateGoals() {
+  const key = (g) => `${g.categoryId || ''}|${(g.title || '').trim().toLowerCase()}`;
+  const canon = new Map();
+  for (const g of state.monthGoals || []) {
+    const cur = canon.get(key(g));
+    if (!cur || (g.month || '') < (cur.month || '')) canon.set(key(g), g);
+  }
+  const canonIds = new Set([...canon.values()].map((g) => g.id));
+  const goalRemap = new Map((state.monthGoals || []).map((g) => [g.id, canon.get(key(g)).id]));
+  const keepByKey = new Map();
+  const planRemap = new Map();
+  const keptPlans = [];
+  for (const p of state.weekPlans || []) {
+    p.monthGoalId = goalRemap.get(p.monthGoalId) || p.monthGoalId;
+    const k = `${p.monthGoalId}|${p.weekStart}`;
+    if (keepByKey.has(k)) planRemap.set(p.id, keepByKey.get(k));
+    else { keepByKey.set(k, p.id); keptPlans.push(p); }
+  }
+  state.weekPlans = keptPlans;
+  for (const t of state.weekTargets || []) { const r = planRemap.get(t.weekPlanId); if (r) t.weekPlanId = r; }
+  for (const t of state.dayTasks || []) { const r = planRemap.get(t.weekPlanId); if (r) t.weekPlanId = r; }
+  state.monthGoals = (state.monthGoals || []).filter((g) => canonIds.has(g.id));
+  for (const it of state.exploreItems || []) { const r = goalRemap.get(it.goalId); if (r) it.goalId = r; }
 }
 function addCategory(name) {
   const used = new Set(state.categories.map((c) => c.color));
@@ -826,7 +852,7 @@ function deleteCategory(id) {
 }
 function moveGoalToCategory(goal, categoryId) {
   goal.categoryId = categoryId;
-  goal.order = state.monthGoals.filter((g) => g.month === goal.month && g.categoryId === categoryId && g.id !== goal.id).length;
+  goal.order = state.monthGoals.filter((g) => g.categoryId === categoryId && !g.closed && g.id !== goal.id).length;
 }
 
 function getOrCreateWeekPlan(monthGoalId, weekStart) {
@@ -918,11 +944,11 @@ function setWeek(ws) {
   curDay = weekDays(ws)[idx];
 }
 /** monthProgress of one goal: its in-month, non-empty week plans. */
-function goalMonthFrac(goal) {
+function goalMonthFrac(goal, month) {
   const plans = state.weekPlans.filter((p) => p.monthGoalId === goal.id);
   return monthProgress(
     plans
-      .filter((p) => monthOfWeek(p.weekStart) === goal.month)
+      .filter((p) => monthOfWeek(p.weekStart) === month)
       .map((p) => ({
         targets: state.weekTargets.filter((t) => t.weekPlanId === p.id),
         tasks: state.dayTasks.filter((t) => t.weekPlanId === p.id),
@@ -931,9 +957,17 @@ function goalMonthFrac(goal) {
       .map((x) => weekProgress(x.targets, x.tasks)),
   );
 }
+/** Goals shown for a month: open goals + closed ones that still have plans there (history). */
+const goalHasPlanInMonth = (g, month) =>
+  state.weekPlans.some((p) => p.monthGoalId === g.id && monthOfWeek(p.weekStart) === month);
+function visibleGoals(month) {
+  return state.monthGoals
+    .filter((g) => !g.closed || goalHasPlanInMonth(g, month))
+    .sort((a, b) => a.order - b.order);
+}
 /** Board sections: one per category in order + "Uncategorized" when non-empty. */
 function catSections(month) {
-  const goals = state.monthGoals.filter((g) => g.month === month).sort((a, b) => a.order - b.order);
+  const goals = visibleGoals(month);
   const secs = state.categories
     .slice()
     .sort((a, b) => a.order - b.order)
@@ -1059,6 +1093,7 @@ function goalRowHtml(goal, days7, today) {
           ${moveFor === goal.id ? `<div class="dropdown">
             <div class="dd-h">Goal options</div>
             <button data-action="targets-open" data-id="${goal.id}">☰ Weekly targets…</button>
+            <button data-action="goal-close" data-id="${goal.id}">✓ Mark complete</button>
             <div class="dd-sep"></div>
             <div class="dd-h">Move to category</div>
             ${state.categories.slice().sort((a, b) => a.order - b.order).map((c2) =>
@@ -1086,7 +1121,7 @@ function todayPanelHtml(today) {
     .sort((a, b) => ((a.goal || {}).order ?? 99) - ((b.goal || {}).order ?? 99) || a.t.order - b.t.order);
   const done = dayItems.filter((x) => x.t.done).length;
   const co = carryOvers();
-  const goals = state.monthGoals.filter((g) => g.month === (goalsPeriod === 'month' ? curMonthView : monthOfWeek(curWeek))).sort((a, b) => a.order - b.order);
+  const goals = visibleGoals(goalsPeriod === 'month' ? curMonthView : monthOfWeek(curWeek));
   const planned = dayItems.map((x) =>
     `<div class="task">
       <input type="checkbox" data-change="task-done" data-id="${x.t.id}" ${x.t.done ? 'checked' : ''} />
@@ -1396,8 +1431,7 @@ function renderCal() {
   const weeks = weeksOfMonth(calViewMonth);
   const today = toISODate(new Date());
   const catOrd = new Map(state.categories.map((c) => [c.id, c.order]));
-  const goals = state.monthGoals
-    .filter((g) => g.month === calViewMonth)
+  const goals = visibleGoals(calViewMonth)
     .sort((a, b) => (catOrd.get(a.categoryId) ?? 99) - (catOrd.get(b.categoryId) ?? 99) || a.order - b.order);
   // per-date task counts + done-by-goal breakdown, single pass over dayTasks
   const goalTitleByPlan = new Map();
@@ -1488,7 +1522,7 @@ function renderPhone() {
   const isCurWeek = curWeek === weekStartOf(new Date());
   const isToday = isCurWeek && curDay === today;
   const wn = isoWeekNumber(curWeek);
-  const goals = state.monthGoals.filter((g) => g.month === curMonth).sort((a, b) => a.order - b.order);
+  const goals = visibleGoals(curMonth);
   const goalIds = new Set(goals.map((g) => g.id));
   const planIds = new Set(state.weekPlans.filter((p) => goalIds.has(p.monthGoalId) && p.weekStart === curWeek).map((p) => p.id));
   const busyDays = new Set(state.dayTasks.filter((t) => planIds.has(t.weekPlanId)).map((t) => t.date));
@@ -1557,7 +1591,7 @@ function renderPhoneCard(goal, day, today) {
   const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
   const dayTasks = tasks.filter((t) => t.date === day).sort((a, b) => a.order - b.order);
   const wFrac = plan ? weekProgress(targets, tasks) : 0;
-  const mFrac = goalMonthFrac(goal);
+  const mFrac = goalMonthFrac(goal, monthOfWeek(curWeek));
 
   const weekPart = plan
     ? `
@@ -1737,7 +1771,7 @@ app.addEventListener('click', (e) => {
       break;
     }
     case 'cat-add-goal':
-      withEl((el2) => el2 && openInline(el2, '', (v) => { addMonthGoal(curMonth, v, el.dataset.id || undefined); save(); render(); }));
+      withEl((el2) => el2 && openInline(el2, '', (v) => { addGoal(v, el.dataset.id || undefined); save(); render(); }));
       break;
     case 'add-cat': {
       const cid = addCategory('New category');
@@ -1770,6 +1804,13 @@ app.addEventListener('click', (e) => {
     case 'edit-goal':
       withEl((el2) => el2 && openInline(el2, findGoal(id).title, (v) => { findGoal(id).title = v; save(); render(); }));
       break;
+    case 'goal-close': {
+      const g = findGoal(id);
+      if (g && confirm(`Mark "${g.title}" as completed? It will be hidden from upcoming weeks.`)) {
+        g.closed = true; moveFor = null; save(); render();
+      }
+      break;
+    }
     case 'del-goal': {
       const g = findGoal(id);
       if (confirm(`Delete "${g.title}" and all its plans, targets and tasks?`)) {
@@ -1928,6 +1969,7 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
       if (!Array.isArray(state.exploreItems)) state.exploreItems = [];
       if (!['habits','explore'].includes(state.view)) state.view = 'goals';
       ensureCategories();
+      migrateGoals();
       menuOpen = false;
       save(); render();
     }
