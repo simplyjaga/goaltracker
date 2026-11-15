@@ -350,6 +350,30 @@
     .chip { min-width: 32px; min-height: 32px; }
     .inline { font-size: 16px; }
   }
+
+<style id="approved-visual-redesign">
+:root{--bg:#0b0b18;--header-bg:#101024;--card:#17172c;--fill:#20203d;--border:#302d58;--border-h:#51458a;--text:#f4f1ff;--text2:#c3bddf;--muted:#9189b4;--today-bg:rgba(119,62,255,.17);--today-head:#d5baff;--track:#302d52;--conn:#51447d;--done-cb:#8b3dff;--ok:#26d9a0;--linkchip-bg:#29234b;--linkchip-c:#c6a9ff;--pop:#1a1830;--pop-shadow:0 16px 48px rgba(0,0,0,.45);--dot-o:#5b5683;--dot-h:#8174ba;--cal-sel:#29204e;--cal-hov:#211d3d;--yellow:#ffbf24}
+html.dark{--bg:#0b0b18;--header-bg:#101024;--card:#17172c;--fill:#20203d;--border:#302d58;--border-h:#51458a;--text:#f4f1ff;--text2:#c3bddf;--muted:#9189b4;--today-bg:rgba(119,62,255,.17);--today-head:#d5baff;--track:#302d52;--conn:#51447d;--done-cb:#8b3dff;--ok:#26d9a0;--linkchip-bg:#29234b;--linkchip-c:#c6a9ff;--pop:#1a1830}
+html:not(.dark){--bg:#f4f2fb;--header-bg:#fff;--card:#fff;--fill:#f0edfa;--border:#ded8ef;--border-h:#b8a8e2;--text:#211b36;--text2:#51486b;--muted:#817895;--today-bg:#f0e9ff;--today-head:#7138d7;--track:#e5e0f0;--conn:#c9c0df;--pop:#fff}
+body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min-height:100vh}#app{min-height:100vh}
+.app-shell{min-height:100vh;display:grid;grid-template-columns:226px minmax(0,1fr)}
+.sidebar{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:24px 14px 16px;background:linear-gradient(180deg,#111126,#0e0e1d);border-right:1px solid #302d58;color:#eee9ff}
+.brand{display:flex;align-items:center;gap:12px;padding:3px 10px 34px;font-size:18px;font-weight:750;letter-spacing:-.03em}.brand .logo{width:38px;height:38px;border-radius:10px;color:#171326;font-size:25px}
+.side-nav{display:grid;gap:8px}.side-nav button{height:54px;border:0;border-radius:12px;padding:0 16px;display:flex;align-items:center;gap:14px;background:transparent;color:#c9c1e8;font:600 15px var(--sans);text-align:left;cursor:pointer}.side-nav button .nav-ico{font-size:21px;width:22px;text-align:center}.side-nav button.active{background:linear-gradient(110deg,#5425a4,#392078);color:#fff;box-shadow:inset 0 0 0 1px #6840b4}.side-nav button:hover:not(.active){background:#1c1a35}
+.side-bottom{margin-top:auto;padding:14px;border:1px solid #302d58;background:#17172c;border-radius:15px}.sync-state{display:flex;align-items:center;gap:8px;color:#4be2a9;font-weight:700;font-size:14px;margin-bottom:3px}.sync-state i{width:10px;height:10px;border-radius:50%;background:#39d99d;box-shadow:0 0 12px #39d99d;display:inline-block}.sync-date{font-size:11px;color:#a49bbc;margin:0 0 12px 18px}.side-bottom button{width:100%;height:42px;border:1px solid #4c437d;border-radius:24px;background:#242044;color:#eeeaff;font:600 13px var(--sans);cursor:pointer}
+.workspace{min-width:0}.topbar{height:82px;padding:0 28px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border);background:var(--header-bg)}.topbar .spacer{flex:1}.topbar .switcher{gap:12px}.topbar .gbtn{width:44px;height:44px;border-radius:50%;font-size:20px;background:var(--card);border-color:var(--border);color:var(--text)}.topbar .wlabel{font:600 21px var(--sans);min-width:260px}.view-tabs{display:flex;gap:4px;padding:4px;border:1px solid var(--border);border-radius:28px;background:var(--card)}.view-tabs button{border:0;border-radius:24px;padding:10px 17px;background:transparent;color:var(--text2);font:600 13px var(--sans);cursor:pointer}.view-tabs button.active{background:linear-gradient(110deg,#7c32ec,#5820c8);color:#fff;box-shadow:0 3px 14px #6b2ce866}.topbar .gbtn.iconbtn{width:40px;height:40px}.topbar .menu-wrap .menu{top:48px}
+.workspace main{padding:22px 26px 28px}
+.cobanner{background:linear-gradient(100deg,#3a281d,#2c211e);border:1px solid #bd7a0a;border-left:4px solid #f5a900;border-radius:14px;padding:13px 18px;margin-bottom:18px;color:#ffe0a1}.cobanner .cot b{font-size:16px;color:#ffd166}.cobanner .cot span{font-size:13px;color:#e5cda8}.cobanner .gbtn{height:40px;border:1px solid #9d7847;border-radius:24px;color:#fff0d6;font-weight:700;padding:0 18px}
+.gboard{border:1px solid var(--border);border-radius:14px;background:var(--card);overflow:hidden}.ghead,.grow{grid-template-columns:220px repeat(7,minmax(0,1fr))}.ghead{background:#19182f}.ghead .gh{height:76px;padding:12px 5px;font:600 13px var(--sans);color:#c9c0e9;border-left:1px solid var(--border)}.ghead .gh b{font:700 16px var(--sans);color:var(--text)}.ghead .gh.sel{background:linear-gradient(180deg,#5930aa,#3b2374);color:white;border-radius:10px 10px 0 0}.ghead .gh.sel b{color:#fff}
+.glabel{padding:16px 14px;min-height:108px;background:#15152a}.glabel .gt{font-size:15px;line-height:1.4;color:#9ce9ff}.glabel .gsub{font-size:11px;color:var(--muted);margin:5px 0 8px 18px}.glabel .pbar .track{height:9px}.gcell{min-height:108px;padding:7px;background:linear-gradient(180deg,rgba(255,255,255,.012),transparent);border-left:1px solid var(--border)}.gcell.today{background:rgba(105,53,211,.14);box-shadow:inset 0 0 0 1px #7140d2}.gcell .task{padding:9px 7px;gap:8px;background:#24213e;border:1px solid #302a55;border-radius:10px;margin-bottom:6px}.gcell .task input{width:18px;height:18px;accent-color:#8b35f5}.gcell .task .txt{font-size:13px;line-height:18px;color:var(--text)}.gcell .task .txt.done{color:#a29bb8}.gcell .addghost{text-align:center;padding:8px 3px;border-radius:8px;font-size:12px}
+.cathead{background:#121225;padding:9px 14px;margin:0;border-bottom:1px solid var(--border)}.catname{font-size:12px;color:#b9a8f5}
+.tpanel{margin-top:18px;padding:17px 20px;border-radius:15px;background:linear-gradient(115deg,#211a42,#19182f);border-color:#3a2b6c}.tp-head{padding-bottom:12px;border-bottom:1px solid #3a315d;align-items:center}.tp-head .tp-title{font-size:17px}.tp-cols{grid-template-columns:1fr 1fr;gap:22px}.tp-cols>div+div{border-left:1px solid #44366d;padding-left:22px}.tp-h{font-size:12px;color:#c0b1ed}.tpanel .task{padding:5px 0}.tpanel .task input{width:19px;height:19px}.tpanel .task .txt{font-size:14px;color:var(--text)}.tp-add{border-color:#8041ed;color:#c6a5ff;border-radius:22px;height:40px;padding:0 20px}
+.wsum{margin-top:16px;border-radius:14px;background:#19182f;border-color:var(--border);padding:16px 20px;font-size:13px}.wsum .wst{font-size:15px;color:#cbbaff}
+.period-toggle{display:none}.month-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:18px;align-items:start}.month-heading{display:flex;align-items:center;gap:12px;margin:0 0 16px;font-size:24px;font-weight:750}.month-heading .cal-ico{font-size:28px;color:#b99aff}.month-board{border:1px solid var(--border);border-radius:13px;background:var(--card);grid-template-columns:repeat(7,minmax(0,1fr))}.month-dow{padding:13px 6px;font:600 12px var(--sans);color:#b8a9e7;background:#1b1a34}.month-day{min-height:132px;padding:8px;border-color:var(--border);background:linear-gradient(145deg,#17172d,#151528)}.month-day.today,.month-day.selected{background:linear-gradient(145deg,#38216d,#241a48);box-shadow:inset 0 0 0 1px #8b43f1}.month-date button{font-size:16px;font-weight:700;color:var(--text)}.month-task{padding:5px 6px;border-radius:7px;background:#24213e;color:var(--text);font-size:11px}.month-task.done{opacity:.55}.month-side{display:grid;gap:14px}.overview-card{padding:18px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(150deg,#1d1b39,#17172c)}.overview-card h3{margin:0 0 16px;font-size:16px}.overview-total{display:flex;align-items:center;gap:15px;margin-bottom:16px}.overview-total strong{font-size:30px;color:#64d9f5}.overview-total span{font-size:12px;color:var(--text2)}.month-cat{display:flex;align-items:center;gap:8px;margin:12px 0;color:var(--text2);font-size:13px}.month-cat b{margin-left:auto;color:var(--text)}.month-cat small{color:var(--muted)}.month-side .tpanel{margin:0;padding:14px}
+.hpage-head{display:flex;align-items:center;gap:16px;margin:0 0 22px}.hpage-head .hicon{font-size:34px;color:#b895ff}.hpage-head h2{font-size:28px;margin:0;font-weight:750}.hpage-head p{margin:2px 0 0;color:var(--text2);font-size:15px}.hsummary{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:14px;margin:0 0 22px;max-width:980px}.hstat{padding:18px 20px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(145deg,#1d1b39,#17172c);display:flex;flex-direction:column;gap:5px}.hstat b{font-size:25px;color:var(--text)}.hstat span{font-size:13px;color:var(--text2)}.hheads{display:flex;align-items:center;margin:0;background:#1b1a34;border:1px solid var(--border);border-radius:13px 13px 0 0;padding:15px 14px}.hheads .hn,.hname-wrap{width:300px}.hheads .hd7 span{font:600 13px var(--sans);color:#c9c0e9}.hrow{margin:0;border:1px solid var(--border);border-top:0;border-radius:0;background:#17172c}.hname-wrap{padding:17px 18px;align-items:center}.hname{font-size:15px;color:var(--text)}.hcell{min-height:66px}.hcell .hdot{width:21px;height:21px;border-width:2px}.hcell.done .hdot{background:#29d7a0;border-color:#29d7a0}.hcell.today{background:rgba(110,53,210,.14)}.hmtitle{margin-top:26px;color:#bba8f0}
+@media(max-width:1100px) and (min-width:768px){.app-shell{grid-template-columns:190px minmax(0,1fr)}.ghead,.grow{grid-template-columns:170px repeat(7,minmax(0,1fr))}.gcell .task .txt{font-size:11px}.month-layout{grid-template-columns:minmax(0,1fr) 260px}.month-day{min-height:105px}}
+@media(max-width:767px){.app-shell{display:block}.sidebar{display:none}.topbar{height:auto;min-height:58px;padding:8px 12px;flex-wrap:wrap;gap:8px}.topbar .wlabel{min-width:0;font-size:12px}.topbar .gbtn{width:30px;height:30px;font-size:14px}.topbar .switcher{gap:4px}.topbar .view-tabs{display:none}.workspace main{padding:12px}.gboard{display:none}.hpage-head{margin-bottom:14px}.hpage-head h2{font-size:22px}.hsummary{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:14px}.hstat{padding:10px 8px}.hstat b{font-size:18px}.hstat span{font-size:10px}.hheads{padding:8px 4px}.hheads .hn,.hname-wrap{width:110px}.hheads .hd7 span{font-size:9px}.hname-wrap{padding:10px 6px}.hname{font-size:12px}.hcell{min-height:48px}.hcell .hdot{width:17px;height:17px}.month-layout{display:block}.month-side{margin-top:12px}.month-day{min-height:72px;padding:3px}.month-task{font-size:9px;padding:3px}.month-heading{font-size:18px}.month-cat{font-size:11px}.tp-cols{grid-template-columns:1fr}.tp-cols>div+div{border-left:0;border-top:1px solid #44366d;padding:12px 0 0}.cobanner{padding:10px}.cobanner .cot b{font-size:13px}.cobanner .cot span{font-size:11px}.wsum{gap:8px;padding:10px}.topbar .spacer{display:none}}
+</style>
 </style>
 </head>
 <body>
@@ -1041,15 +1065,12 @@ function monthGoalsMain(month, today) {
   }).join('');
   const monthTasks = state.dayTasks.filter(t => t.date.startsWith(month));
   const done = monthTasks.filter(t => t.done).length;
-  return `<main>
-    <div class="month-summary">${categorySummary || '<span class="tp-empty">No category tasks planned this month yet.</span>'}</div>
+  return `<main class="month-layout"><section class="month-main"><h2 class="month-heading"><span class="cal-ico">▦</span>${formatMonth(month)}</h2>
     <div class="month-board">
       ${['MON','TUE','WED','THU','FRI','SAT','SUN'].map(d=>`<div class="month-dow">${d}</div>`).join('')}
       ${cells}
     </div>
-    <div class="wsum"><span class="wst">${formatMonth(month)} summary</span><span>${goals.length} goals</span><span>${done} / ${monthTasks.length} tasks completed</span><span class="ws-all">${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}% complete</span></div>
-    ${todayPanelHtml(today)}
-  </main>`;
+    <div class="wsum"><span class="wst">${formatMonth(month)} summary</span><span>${goals.length} goals</span><span>${done} / ${monthTasks.length} tasks completed</span><span class="ws-all">${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}% complete</span></div></section><aside class="month-side"><div class="overview-card"><h3>▥ ${formatMonth(month)} Overview</h3><div class="overview-total"><strong>${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}%</strong><span>${done} / ${monthTasks.length}<br/>Tasks done</span></div>${categorySummary || '<span class="tp-empty">No category tasks planned yet.</span>'}</div>${todayPanelHtml(today)}</aside></main>`;
 }
 
 function renderGoalsMain(curMonth, today) {
@@ -1092,39 +1113,35 @@ function renderDesktop() {
   const today = toISODate(new Date());
   const isCurWeek = curWeek === weekStartOf(new Date());
   const wn = isoWeekNumber(curWeek);
-
+  const periodLabel = state.view === 'goals' && goalsPeriod === 'month' ? formatMonth(curMonth) : `W${wn} · ${esc(formatWeekRangeShort(curWeek))}`;
   app.innerHTML = `
-    <header>
-      <span class="logo">${LOGO}</span>
-      <h1>Goal Tracker</h1>
-      ${segHtml()}
-      <div class="switcher">
-        <button class="gbtn" data-action="prev-period" aria-label="Previous period">◀</button>
-        <span class="wlabel">${state.view === 'goals' && goalsPeriod === 'month' ? formatMonth(curMonth) : `W${wn} · ${esc(formatWeekRangeShort(curWeek))}`}</span>
-        <button class="gbtn" data-action="next-period" aria-label="Next period">▶</button>
-      </div>
-      ${state.view === 'goals' ? `<div class="period-toggle"><button class="${goalsPeriod === 'week' ? 'sel' : ''}" data-action="goals-period" data-period="week">Week</button><button class="${goalsPeriod === 'month' ? 'sel' : ''}" data-action="goals-period" data-period="month">Month</button></div>` : ''}
-      ${isCurWeek ? '' : '<button class="gbtn" data-action="today">Today</button>'}
-      <div class="spacer"></div>
-      <div class="cal-wrap">
-        <button class="gbtn" data-action="cal">${formatMonth(curMonth)} ▾</button>
-        ${calOpen ? renderCal() : ''}
-      </div>
-      <button class="gbtn" data-action="theme" title="Toggle dark mode">${dark ? '☀' : '☾'}</button>
-      <div class="menu-wrap">
-        <button class="gbtn" data-action="menu" aria-label="Menu">⋯</button>
-        ${menuOpen ? `<div class="menu">
-          ${state.view === 'habits' ? '<button data-action="habit-add">Add habit</button>' : '<button data-action="add-cat">Add category</button>'}
-          <button data-action="cloud-sync">Cloud sync…</button>
-          <button data-action="export">Export JSON</button>
-          <button data-action="import">Import JSON</button>
-          ${installEvt ? '<button data-action="install">Install app</button>' : ''}
-        </div>` : ''}
-      </div>
-    </header>
-    ${state.view === 'habits' ? renderHabitsMain(today) : renderGoalsMain(curMonth, today)}`;
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand"><span class="logo">${LOGO}</span><span>Goal Tracker</span></div>
+        <nav class="side-nav">
+          <button class="${state.view === 'goals' ? 'active' : ''}" data-action="set-view" data-v="goals"><span class="nav-ico">⌂</span>Goals</button>
+          <button class="${state.view === 'habits' ? 'active' : ''}" data-action="set-view" data-v="habits"><span class="nav-ico">⟳</span>Habits</button>
+        </nav>
+        <div class="side-bottom"><div class="sync-state"><i></i> Synced</div><div class="sync-date">Cloud backup available</div><button data-action="cloud-sync">☁ Cloud Sync</button></div>
+      </aside>
+      <section class="workspace">
+        <header class="topbar">
+          <div class="switcher"><button class="gbtn" data-action="prev-period" aria-label="Previous period">‹</button><span class="wlabel">${periodLabel}</span><button class="gbtn" data-action="next-period" aria-label="Next period">›</button></div>
+          <div class="spacer"></div>
+          ${state.view === 'goals' ? `<div class="view-tabs"><button class="${goalsPeriod === 'week' ? 'active' : ''}" data-action="goals-period" data-period="week">▣ Weekly</button><button class="${goalsPeriod === 'month' ? 'active' : ''}" data-action="goals-period" data-period="month">▦ Monthly</button></div>` : ''}
+          ${isCurWeek ? '' : '<button class="gbtn iconbtn" data-action="today">Today</button>'}
+          <div class="cal-wrap"><button class="gbtn iconbtn" data-action="cal" title="Calendar">▦</button>${calOpen ? renderCal() : ''}</div>
+          <button class="gbtn iconbtn" data-action="theme" title="Toggle theme">${dark ? '☀' : '☾'}</button>
+          <div class="menu-wrap"><button class="gbtn iconbtn" data-action="menu" aria-label="Menu">⋯</button>${menuOpen ? `<div class="menu">
+            ${state.view === 'habits' ? '<button data-action="habit-add">Add habit</button>' : '<button data-action="add-cat">Add category</button>'}
+            <button data-action="cloud-sync">Cloud sync…</button><button data-action="export">Export JSON</button><button data-action="import">Import JSON</button>
+            ${installEvt ? '<button data-action="install">Install app</button>' : ''}
+          </div>` : ''}</div>
+        </header>
+        ${state.view === 'habits' ? renderHabitsMain(today) : renderGoalsMain(curMonth, today)}
+      </section>
+    </div>`;
 }
-
 /* ---------------- habits view ---------------- */
 function habitCellHtml(h, d, today, showLabel) {
   const done = habitDone(h, d);
@@ -1206,7 +1223,7 @@ function renderHabitsMain(today) {
       <div class="hdays7">${days7.map((d) => habitCellHtml(h, d, today, false)).join('')}</div>
     </div>`;
   }).join('');
-  return `<main>
+  return `<main><div class="hpage-head"><span class="hicon">⟳</span><div><h2>Habits</h2><p>Build good habits, one day at a time</p></div></div>
     ${habitSummaryHtml(today)}
     <div class="hheads">
       <span class="hn">HABIT</span>
