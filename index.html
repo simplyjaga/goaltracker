@@ -1001,7 +1001,46 @@ function weekSummaryHtml(curMonth) {
   return `<div class="wsum"><span class="wst">Weekly Goals Summary:</span>${items.join('')}
     <span class="ws-all">Overall: <b>${overall}%</b></span></div>`;
 }
+
+function monthGoalsMain(month, today) {
+  const weeks = weeksOfMonth(month);
+  const dates = weeks.flatMap((ws) => weekDays7(ws));
+  const byDate = new Map();
+  for (const t of state.dayTasks) {
+    if (!t.date.startsWith(month)) continue;
+    const plan = findPlan(t.weekPlanId);
+    const goal = plan && findGoal(plan.monthGoalId);
+    if (!byDate.has(t.date)) byDate.set(t.date, []);
+    byDate.get(t.date).push({ t, goal, color: goal ? catColorOf(goal) : 'var(--muted)' });
+  }
+  const cells = dates.map((d) => {
+    const entries = (byDate.get(d) || []).sort((a,b) => ((a.goal || {}).order ?? 99) - ((b.goal || {}).order ?? 99) || a.t.order - b.t.order);
+    const visible = entries.slice(0, 4);
+    return `<div class="month-day ${d.slice(0,7) !== month ? 'out' : ''} ${d === today ? 'today' : ''} ${d === curDay ? 'selected' : ''}">
+      <div class="month-date"><button data-action="month-day-select" data-date="${d}">${parseISO(d).getDate()}</button>${entries.length ? `<span class="caption">${entries.length}</span>` : ''}</div>
+      ${visible.map(({t,goal,color}) => `<label class="month-task ${t.done ? 'done' : ''}" title="${esc(t.text)} · ${goal ? esc(goal.title) : 'No goal'}">
+        <input type="checkbox" data-change="task-done" data-id="${t.id}" ${t.done ? 'checked' : ''}/>
+        <span style="border-left:2px solid ${color};padding-left:3px">${esc(t.text)}</span>
+      </label>`).join('')}
+      ${entries.length > 4 ? `<div class="month-more">+${entries.length - 4} more</div>` : ''}
+      <button class="addghost" data-action="month-day-select" data-date="${d}">+ Add / view</button>
+    </div>`;
+  }).join('');
+  const goals = state.monthGoals.filter(g => g.month === month);
+  const monthTasks = state.dayTasks.filter(t => t.date.startsWith(month));
+  const done = monthTasks.filter(t => t.done).length;
+  return `<main>
+    <div class="month-board">
+      ${['MON','TUE','WED','THU','FRI','SAT','SUN'].map(d=>`<div class="month-dow">${d}</div>`).join('')}
+      ${cells}
+    </div>
+    <div class="wsum"><span class="wst">${formatMonth(month)} summary</span><span>${goals.length} goals</span><span>${done} / ${monthTasks.length} tasks completed</span><span class="ws-all">${monthTasks.length ? Math.round(done/monthTasks.length*100) : 0}% complete</span></div>
+    ${todayPanelHtml(today)}
+  </main>`;
+}
+
 function renderGoalsMain(curMonth, today) {
+  if (goalsPeriod === 'month') return monthGoalsMain(curMonth, today);
   const days7 = weekDays7(curWeek);
   if (!days7.includes(curDay)) curDay = days7[0];
   const rows = catSections(curMonth)
