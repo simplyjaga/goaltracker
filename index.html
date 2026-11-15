@@ -445,7 +445,14 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 
 /* --- fixes: Today button, goal picker, text overflow, row separation --- */
 .topbar .gbtn[data-action="today"]{width:auto;height:36px;border-radius:18px;padding:0 14px;font-size:13px;font-weight:600;flex-shrink:0}
-.topbar{min-width:0;overflow:visible}
+.app-shell{display:block}
+.topbar{min-width:0;overflow:visible;gap:10px}
+.brand-mini{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;flex-shrink:0;white-space:nowrap}
+.brand-mini .logo{width:22px;height:22px}
+.topnav{display:flex;gap:3px;padding:3px;border:1px solid var(--border);border-radius:24px;background:var(--card);flex-shrink:0}
+.topnav button{border:0;border-radius:18px;padding:6px 12px;background:transparent;color:var(--text2);font:600 12px var(--sans);cursor:pointer;white-space:nowrap}
+.topnav button.active{background:linear-gradient(110deg,#7c32ec,#5820c8);color:#fff}
+.topnav button:hover:not(.active){background:var(--fill)}
 .topbar .switcher{min-width:0;flex-shrink:1}
 .topbar .wlabel{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .view-tabs{flex-shrink:1;min-width:0}
@@ -1268,17 +1275,14 @@ function renderDesktop() {
   const periodLabel = state.view === 'goals' && goalsPeriod === 'month' ? formatMonth(curMonth) : `W${wn} · ${esc(formatWeekRangeShort(curWeek))}`;
   app.innerHTML = `
     <div class="app-shell">
-      <aside class="sidebar">
-        <div class="brand"><span class="logo">${LOGO}</span><span>Goal Tracker</span></div>
-        <nav class="side-nav">
-          <button class="${state.view === 'goals' ? 'active' : ''}" data-action="set-view" data-v="goals"><span class="nav-ico">⌂</span>Goals</button>
-          <button class="${state.view === 'habits' ? 'active' : ''}" data-action="set-view" data-v="habits"><span class="nav-ico">⟳</span>Habits</button>
-          <button class="${state.view === 'explore' ? 'active' : ''}" data-action="set-view" data-v="explore"><span class="nav-ico">⌑</span>Explore & Later</button>
-        </nav>
-        <div class="side-bottom"><div class="sync-state"><i></i> Cloud backup</div><div class="sync-date">Manage your backup below</div><button data-action="cloud-sync">☁ Cloud Sync</button></div>
-      </aside>
       <section class="workspace">
         <header class="topbar">
+          <span class="brand-mini"><span class="logo">${LOGO}</span>Goal Tracker</span>
+          <nav class="topnav">
+            <button class="${state.view === 'goals' ? 'active' : ''}" data-action="set-view" data-v="goals">⌂ Goals</button>
+            <button class="${state.view === 'habits' ? 'active' : ''}" data-action="set-view" data-v="habits">⟳ Habits</button>
+            <button class="${state.view === 'explore' ? 'active' : ''}" data-action="set-view" data-v="explore">⌑ Explore & Later</button>
+          </nav>
           <div class="switcher"><button class="gbtn" data-action="prev-period" aria-label="Previous period">‹</button><span class="wlabel">${periodLabel}</span><button class="gbtn" data-action="next-period" aria-label="Next period">›</button></div>
           <div class="spacer"></div>
           ${state.view === 'goals' ? '<button class="primary-action" data-action="add-cat">＋ Add category</button>' : ''}
@@ -1286,6 +1290,7 @@ function renderDesktop() {
           ${isCurWeek ? '' : '<button class="gbtn iconbtn" data-action="today">Today</button>'}
           <div class="cal-wrap"><button class="gbtn iconbtn" data-action="cal" title="Calendar">▦</button>${calOpen ? renderCal() : ''}</div>
           <div class="menu-wrap"><button class="gbtn iconbtn" data-action="menu" aria-label="Menu">⋯</button>${menuOpen ? `<div class="menu">
+            <button data-action="cloud-sync">☁ Cloud sync…</button>
             <button data-action="export">Export backup (JSON)</button><button data-action="import">Import backup (JSON)</button>
             ${installEvt ? '<button data-action="install">Install app</button>' : ''}
           </div>` : ''}</div>
