@@ -445,11 +445,18 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 
 /* --- fixes: Today button, goal picker, text overflow, row separation --- */
 .topbar .gbtn[data-action="today"]{width:auto;height:36px;border-radius:18px;padding:0 14px;font-size:13px;font-weight:600;flex-shrink:0}
-.topbar{flex-wrap:nowrap;overflow-x:auto}
+.topbar{min-width:0;overflow:visible}
+.topbar .switcher{min-width:0;flex-shrink:1}
+.topbar .wlabel{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.view-tabs{flex-shrink:1;min-width:0}
+.view-tabs button{padding:8px 10px;white-space:nowrap}
+.topbar .primary-action{flex-shrink:0}
 .goalpick{left:0;right:auto;bottom:calc(100% + 4px);min-width:210px;max-width:min(320px,80vw);max-height:280px;overflow-y:auto;z-index:60}
 .goalpick button{overflow-wrap:anywhere}
-.glabel,.gcell,.gcell .tasks,.task,.task .tmain,.tp-cols>div,.corow .ct,.grow{min-width:0}
+.glabel,.glabel .gt,.gcell,.gcell .tasks,.task,.task .tmain,.tp-cols>div,.corow .ct,.grow{min-width:0}
 .glabel .gtname,.glabel .gsub,.task .txt,.tp-goal,.corow .ct,.hmname,.hname{overflow-wrap:anywhere}
+.glabel .gtname{min-width:0}
+.ghead .gh:first-child{display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:default}
 .month-task{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* one cohesive board: slim day header, goal rows share the card */
 .gboard{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:block}
@@ -1160,7 +1167,7 @@ function renderGoalsMain(curMonth, today) {
     .join('');
   return `<main>
     <div class="gboard">
-      <div class="ghead"><span class="gh"></span>${days7.map((d) =>
+      <div class="ghead"><span class="gh">Goals</span>${days7.map((d) =>
         `<button class="gh ${d === today ? 'today' : ''} ${d === curDay ? 'sel' : ''}" data-action="day-select" data-date="${d}">
           ${WD[parseISO(d).getDay()].toUpperCase()}<b>${parseISO(d).getDate()}</b>${d === today ? '<span class="gtdot"></span>' : ''}
         </button>`).join('')}
