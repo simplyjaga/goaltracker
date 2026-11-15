@@ -469,9 +469,9 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .glabel .mv-wrap{position:static}
 .glabel .dropdown{left:8px;right:auto;top:32px;width:max-content;max-width:260px;max-height:60vh;overflow-y:auto;z-index:60}
 .month-task{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* category + its goals grouped as one section; rows tinted modules */
-.gboard{background:transparent;border:0;overflow:visible;display:grid;gap:10px}
-.ghead{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#19182f}
+/* one parent card containing day header + nested category sections */
+.gboard{background:#131226;border:1px solid var(--border);border-radius:14px;padding:10px;display:grid;gap:10px}
+.ghead{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#19182f}
 .ghead .gh{height:44px;padding:6px 3px;font-size:10px}
 .ghead .gh b{font-size:13px}
 .gsection{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
@@ -1040,14 +1040,12 @@ function goalRowHtml(goal, days7, today) {
   const c = planCounts(plan);
   const frac = c.total ? c.done / c.total : 0;
   const cat = catOf(goal);
-  const rowStyle = cat ? ` style="background:${cat.color}12;border-color:${cat.color}55"` : '';
-  const labelBg = cat ? ` style="background:${cat.color}26;box-shadow:inset 3px 0 0 ${cat.color}"` : '';
   const targetLines = targets.map((t) => {
     const s = targetStatus(t, tasks);
     return `<div class="gtarget ${s.done ? 'done' : ''}" title="${esc(t.title)}">▸ ${esc(t.title)}</div>`;
   }).join('');
-  return `<div class="grow group" data-goal="${goal.id}"${rowStyle}>
-    <div class="glabel"${labelBg}>
+  return `<div class="grow group" data-goal="${goal.id}">
+    <div class="glabel">
       <div class="gt"><span class="catdot" style="background:${catColorOf(goal)}"></span>
         <span class="gtname" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</span></div>
       <div class="gsub">${cat ? esc(cat.name) : 'Uncategorized'}</div>
