@@ -1,4 +1,4 @@
-const CACHE = 'goal-tracker-v5';
+const CACHE = 'goal-tracker-v6';
 const ASSETS = [
   './',
   'index.html',
