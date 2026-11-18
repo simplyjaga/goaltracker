@@ -496,6 +496,28 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .dd-sep{border-top:1px solid var(--border);margin:4px 0}
 .dropdown button .catdot{display:inline-block;margin-right:7px;vertical-align:1px}
 .gtarget{font-size:10px;line-height:15px;color:var(--text2);margin:0 0 5px 17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* phone polish — compact cards for ~412px screens */
+@media(max-width:767px){
+  header .wlabel{white-space:nowrap;font-size:11px}
+  .seg{max-width:calc(100vw - 130px);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{padding:0 8px;flex-shrink:0}
+  .pcard{border-radius:12px;margin-bottom:12px}
+  .psec{padding:10px 12px}
+  .pconn{display:none}
+  .pbar .track{height:6px}
+  .addbtn{height:auto;min-height:38px;font-size:12px;color:var(--text2);padding:8px 0;line-height:1.4}
+  .dashed{padding:11px 0}
+  details.pcard>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:11px 12px;font:600 11px var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+  details.pcard>summary::-webkit-details-marker{display:none}
+  details.pcard>summary::after{content:'▾';margin-left:auto;font-size:12px}
+  details.pcard:not([open])>summary::after{content:'▸'}
+  details.pcard .psec{padding-top:4px}
+  .corow{padding:6px 0}
+  .corow .ct{font-size:12px}
+  .mvdays{display:inline-flex;gap:3px}
+  .mvdays button{min-width:26px;min-height:26px}
+}
 .gtarget.done{color:var(--muted);text-decoration:line-through}
 .gboard + .month-side{margin-top:18px}
 
@@ -974,12 +996,6 @@ function catHeadHtml(cat, goals) {
     ${cat ? `<button class="del catdel" data-action="cat-del" data-id="${cat.id}" title="Delete category">✕</button>` : ''}
   </div>`;
 }
-function connColor(p) { return clamp01(p) >= 1 ? '#22c55e' : 'var(--conn)'; }
-function downArrow(p) {
-  const col = connColor(p);
-  return `<svg width="16" height="14" viewBox="0 0 16 14"><line x1="8" y1="0" x2="8" y2="9" style="stroke:${col}" stroke-width="1.5"/><polygon points="4,9 12,9 8,14" style="fill:${col}"/></svg>`;
-}
-
 /* ---------------- goals week grid ---------------- */
 const WDF = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const fmtDayLong = (iso) => { const d = parseISO(iso); return `${WDF[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}`; };
@@ -1570,7 +1586,7 @@ function renderPhone() {
 
   const co = carryOvers();
   const coCard = co.length
-    ? `<div class="pcard"><div class="psec"><div class="pday">Carry-over</div>${co.map((x) => coRowHtml(x, true)).join('')}</div></div>`
+    ? `<details class="pcard cocard" open><summary>Carry-over · ${co.length}</summary><div class="psec co-rows">${co.map((x) => coRowHtml(x, true)).join('')}</div></details>`
     : '';
 
   app.innerHTML = `
@@ -1629,7 +1645,6 @@ function renderPhoneCard(goal, day, today) {
   const tasks = plan ? state.dayTasks.filter((t) => t.weekPlanId === plan.id) : [];
   const dayTasks = tasks.filter((t) => t.date === day).sort((a, b) => a.order - b.order);
   const wFrac = plan ? weekProgress(targets, tasks) : 0;
-  const mFrac = goalMonthFrac(goal, monthOfWeek(curWeek));
 
   const weekPart = plan
     ? `
@@ -1644,14 +1659,14 @@ function renderPhoneCard(goal, day, today) {
            <button class="del" data-action="del-target" data-id="${t.id}" title="Delete target">✕</button>
          </div>`;
        }).join('')}
-       <button class="addbtn" data-action="add-target" data-plan="${plan.id}" data-goal="${goal.id}" title="Add target">+</button>`
-    : `<button class="dashed" data-action="add-plan" data-goal="${goal.id}">+ Add weekly plan</button>`;
+       <button class="addbtn" data-action="add-target" data-plan="${plan.id}" data-goal="${goal.id}">＋ Add target</button>`
+    : `<button class="dashed" data-action="add-plan" data-goal="${goal.id}">＋ Plan this week</button>`;
 
   return `<div class="pcard group" data-goal="${goal.id}">
     <div class="psec">
 
       <div class="mtitle" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</div>
-      ${bar(mFrac, 'm')}
+      ${plan ? bar(wFrac, 'w') : ''}
       <div class="mtools">
         <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Goal options">⋯</button>
           ${moveFor === goal.id ? `<div class="dropdown">
@@ -1666,16 +1681,13 @@ function renderPhoneCard(goal, day, today) {
             <button class="danger" data-action="del-goal" data-id="${goal.id}">✕ Delete goal</button>
           </div>` : ''}
         </div>
-        <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete goal">✕</button>
       </div>
     </div>
-    <div class="pconn">${downArrow(mFrac)}</div>
     <div class="psec">${weekPart}</div>
-    <div class="pconn">${downArrow(wFrac)}</div>
     <div class="psec">
       <div class="pday ${day === today ? 'today' : ''}">${WD[parseISO(day).getDay()].toUpperCase()} ${parseISO(day).getDate()}</div>
       ${dayTasks.map((t) => taskHtml(t, targets)).join('')}
-      <button class="addbtn" data-action="add-task" data-goal="${goal.id}" data-plan="${plan ? plan.id : ''}" data-date="${day}" title="Add task">+</button>
+      <button class="addbtn" data-action="add-task" data-goal="${goal.id}" data-plan="${plan ? plan.id : ''}" data-date="${day}">＋ Add task</button>
     </div>
   </div>`;
 }
