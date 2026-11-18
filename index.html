@@ -405,6 +405,9 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .explore-copy p{margin:3px 0 0;color:var(--text2);font-size:12px;overflow-wrap:anywhere}.explore-goal{display:inline-block;margin-top:5px;color:#c5a9ff;font-size:11px}
 .explore-actions{display:flex;align-items:center;gap:12px;flex-shrink:0}.explore-actions a{color:#c5a9ff;font-size:12px;text-decoration:none}.explore-actions button{border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer}
 .explore-empty{padding:30px;border:1px dashed var(--border-h);border-radius:12px;color:var(--muted);text-align:center}
+.explore-cat{display:flex;align-items:center;gap:8px;margin:14px 0 2px;padding:0 4px}
+.explore-cat .catname{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.explore-count{font-size:10px;font-weight:600;color:var(--muted);background:var(--fill);border:1px solid var(--border);border-radius:9px;padding:1px 8px}
 
 
 /* Desktop month view: details below the calendar, never squeezed into a narrow rail. */
@@ -1258,8 +1261,16 @@ async function editExploreItem(id){
 
 function renderExploreMain() {
   const items=(state.exploreItems||[]).slice().sort((a,b)=>(a.done===b.done?(a.order||0)-(b.order||0):Number(a.done)-Number(b.done)));
+  const catOfItem=(item)=>{const cid=item.categoryId||(findGoal(item.goalId)||{}).categoryId;return (state.categories||[]).find(c=>c.id===cid)||null;};
+  const itemHtml=(item)=>`<article class="explore-item"><input type="checkbox" data-change="explore-done" data-id="${item.id}" ${item.done?'checked':''} aria-label="Mark as picked up"/><div class="explore-copy"><div class="explore-title ${item.done?'done':''}" data-action="explore-edit" data-id="${item.id}">${esc(item.title)}</div>${item.description?`<p>${esc(item.description)}</p>`:''}</div><div class="explore-actions">${item.url?`<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">Open ↗</a>`:''}<button data-action="explore-delete" data-id="${item.id}" aria-label="Remove item">×</button></div></article>`;
+  const sections=(state.categories||[]).slice().sort((a,b)=>a.order-b.order)
+    .map(cat=>({cat,items:items.filter(i=>catOfItem(i)===cat)}))
+    .filter(s=>s.items.length);
+  const uncat=items.filter(i=>!catOfItem(i));
+  if(uncat.length)sections.push({cat:null,items:uncat});
+  const sectionHtml=(s)=>`<div class="explore-cat"><span class="catdot" style="background:${s.cat?s.cat.color:'var(--muted)'}"></span><span class="catname" style="color:${s.cat?s.cat.color:'var(--muted)'}">${esc(s.cat?s.cat.name:'Uncategorized')}</span><span class="explore-count">${s.items.length}</span></div>${s.items.map(itemHtml).join('')}`;
   return `<main class="explore-page"><div class="explore-head"><div><h2>Explore & Later</h2><p>Interesting things to learn, read, or build when there's room.</p></div><button class="explore-add" data-action="explore-add">＋ Add item</button></div><div class="explore-list">
-  ${items.length?items.map(item=>{const categoryId=item.categoryId||(findGoal(item.goalId)||{}).categoryId;const cat=categoryId?(state.categories||[]).find(c=>c.id===categoryId):null;return `<article class="explore-item"><input type="checkbox" data-change="explore-done" data-id="${item.id}" ${item.done?'checked':''} aria-label="Mark as picked up"/><div class="explore-copy"><div class="explore-title ${item.done?'done':''}" data-action="explore-edit" data-id="${item.id}">${esc(item.title)}</div>${item.description?`<p>${esc(item.description)}</p>`:''}${cat?`<span class="explore-goal">Category · ${esc(cat.name)}</span>`:''}</div><div class="explore-actions">${item.url?`<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">Open ↗</a>`:''}<button data-action="explore-delete" data-id="${item.id}" aria-label="Remove item">×</button></div></article>`;}).join(''):'<div class="explore-empty">Nothing saved for later yet. Add a topic, resource, or project idea when you come across one.</div>'}</div></main>`;
+  ${items.length?sections.map(sectionHtml).join(''):'<div class="explore-empty">Nothing saved for later yet. Add a topic, resource, or project idea when you come across one.</div>'}</div></main>`;
 }
 
 /* ---------------- render ---------------- */
