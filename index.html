@@ -641,7 +641,7 @@ const authReady = (async () => {
 })();
 
 function hasTrackerData(data) {
-  return ['monthGoals', 'weekPlans', 'weekTargets', 'dayTasks', 'habits', 'exploreItems']
+  return ['monthGoals', 'weekPlans', 'weekTargets', 'dayTasks', 'habits', 'exploreItems', 'bucketItems', 'bucketCategories']
     .some((key) => Array.isArray(data[key]) && data[key].length > 0);
 }
 
@@ -674,12 +674,14 @@ function showCloudSyncOptions(cloud, user) {
           throw new Error('The cloud backup has an unexpected format. Local data was not changed.');
         }
         state = {
-          monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], view: 'goals',
+          monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], bucketItems: [], bucketCategories: [], view: 'goals',
           ...cloud.data,
         };
         if (!Array.isArray(state.habits)) state.habits = [];
         if (!Array.isArray(state.exploreItems)) state.exploreItems = [];
-        if (!['habits','explore'].includes(state.view)) state.view = 'goals';
+        if (!Array.isArray(state.bucketItems)) state.bucketItems = [];
+        if (!Array.isArray(state.bucketCategories)) state.bucketCategories = [];
+        if (!['habits','explore','bucket'].includes(state.view)) state.view = 'goals';
         ensureCategories();
         save();
         render();
@@ -794,10 +796,12 @@ function ensureCategories() {
   if (!Array.isArray(state.categories)) { state.categories = defaultCategories(); save(); }
 }
 
-state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], view: 'goals', ...load() };
+state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], bucketItems: [], bucketCategories: [], view: 'goals', ...load() };
 if (!Array.isArray(state.habits)) state.habits = [];
 if (!Array.isArray(state.exploreItems)) state.exploreItems = [];
-if (!['habits','explore'].includes(state.view)) state.view = 'goals';
+if (!Array.isArray(state.bucketItems)) state.bucketItems = [];
+if (!Array.isArray(state.bucketCategories)) state.bucketCategories = [];
+if (!['habits','explore','bucket'].includes(state.view)) state.view = 'goals';
 ensureCategories();
 navigator.storage?.persist?.();
 
@@ -1126,7 +1130,7 @@ function todayPanelHtml(today) {
       </div>
       <div>
         <div class="tp-h">Carry-over tasks</div>
-        ${co.length ? co.map((x) => coRowHtml(x, false)).join('') : '<div class="tp-empty">Nothing carried over — all caught up.</div>'}
+        ${co.length ? co.map((x) => coRowHtml(x, true)).join('') : '<div class="tp-empty">Nothing carried over — all caught up.</div>'}
       </div>
     </div>
   </div>`;
@@ -1273,12 +1277,54 @@ function renderExploreMain() {
   ${items.length?sections.map(sectionHtml).join(''):'<div class="explore-empty">Nothing saved for later yet. Add a topic, resource, or project idea when you come across one.</div>'}</div></main>`;
 }
 
+function addBucketCategory(name){
+  const used = new Set((state.bucketCategories||[]).map(c=>c.color));
+  const color = PALETTE.find((c) => !used.has(c)) || PALETTE[0];
+  const id = uid();
+  state.bucketCategories.push({id,name,color,order:state.bucketCategories.length});
+  return id;
+}
+async function editBucketItem(id){
+  const item=id?state.bucketItems.find(x=>x.id===id):null;
+  const cats=(state.bucketCategories||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  const values=await showAppDialog({title:item?'Edit wish':'Bucket List',description:'A multi-year wish or life goal — something to work towards when the time is right.',submitLabel:item?'Save changes':'Add to list',initial:item||{},fields:[
+    {name:'title',label:'What do you want to achieve?',required:true,placeholder:'e.g. Learn car driving'},
+    {name:'description',label:'Why it matters / notes',type:'textarea',placeholder:'Motivation, first steps, or anything to remember'},
+    {name:'timeframe',label:'Target timeframe (optional)',placeholder:'e.g. by 2028, after GATE'},
+    {name:'categoryId',label:'List (optional)',type:'select',options:[{value:'',label:'No list'},...cats.map(c=>({value:c.id,label:c.name})),{value:'__new__',label:'＋ New list…'}]}
+  ]});
+  if(!values)return;
+  if(values.categoryId==='__new__'){
+    const res=await showAppDialog({title:'New list',description:'Name this bucket list — e.g. Career, Fitness, Skills.',submitLabel:'Create',fields:[
+      {name:'name',label:'List name',required:true,placeholder:'e.g. Career'}
+    ]});
+    values.categoryId=res?addBucketCategory(res.name):'';
+  }
+  if(item)Object.assign(item,values);else state.bucketItems.push({id:uid(),...values,done:false,order:state.bucketItems.length});
+  save();render();
+}
+
+function renderBucketMain() {
+  const items=(state.bucketItems||[]).slice().sort((a,b)=>(a.done===b.done?(a.order||0)-(b.order||0):Number(a.done)-Number(b.done)));
+  const catOfItem=(item)=>(state.bucketCategories||[]).find(c=>c.id===item.categoryId)||null;
+  const itemHtml=(item)=>`<article class="explore-item"><input type="checkbox" data-change="bucket-done" data-id="${item.id}" ${item.done?'checked':''} aria-label="Mark as achieved"/><div class="explore-copy"><div class="explore-title ${item.done?'done':''}" data-action="bucket-edit" data-id="${item.id}">${esc(item.title)}</div>${item.description?`<p>${esc(item.description)}</p>`:''}${item.timeframe?`<span class="explore-goal">◷ ${esc(item.timeframe)}</span>`:''}</div><div class="explore-actions"><button data-action="bucket-delete" data-id="${item.id}" aria-label="Remove item">×</button></div></article>`;
+  const sections=(state.bucketCategories||[]).slice().sort((a,b)=>a.order-b.order)
+    .map(cat=>({cat,items:items.filter(i=>catOfItem(i)===cat)}))
+    .filter(s=>s.items.length);
+  const uncat=items.filter(i=>!catOfItem(i));
+  if(uncat.length)sections.push({cat:null,items:uncat});
+  const sectionHtml=(s)=>`<div class="explore-cat"><span class="catdot" style="background:${s.cat?s.cat.color:'var(--muted)'}"></span><span class="catname" style="color:${s.cat?s.cat.color:'var(--muted)'}">${esc(s.cat?s.cat.name:'Life')}</span><span class="explore-count">${s.items.length}</span></div>${s.items.map(itemHtml).join('')}`;
+  return `<main class="explore-page"><div class="explore-head"><div><h2>Bucket List</h2><p>Multi-year wishes and life goals — work towards them when the time is right.</p></div><button class="explore-add" data-action="bucket-add">＋ Add item</button></div><div class="explore-list">
+  ${items.length?sections.map(sectionHtml).join(''):'<div class="explore-empty">Your bucket list is empty. Add the things you want to achieve someday — driving, degrees, fitness, travel.</div>'}</div></main>`;
+}
+
 /* ---------------- render ---------------- */
 const app = document.getElementById('app');
 
 const segHtml = () => `<div class="seg">
   <button class="${state.view === 'goals' ? 'sel' : ''}" data-action="set-view" data-v="goals">Goals</button>
   <button class="${state.view === 'habits' ? 'sel' : ''}" data-action="set-view" data-v="habits">Habits</button>
+  <button class="${state.view === 'bucket' ? 'sel' : ''}" data-action="set-view" data-v="bucket">Bucket</button>
 </div>`;
 
 function render() {
@@ -1301,6 +1347,7 @@ function renderDesktop() {
             <button class="${state.view === 'goals' ? 'active' : ''}" data-action="set-view" data-v="goals">⌂ Goals</button>
             <button class="${state.view === 'habits' ? 'active' : ''}" data-action="set-view" data-v="habits">⟳ Habits</button>
             <button class="${state.view === 'explore' ? 'active' : ''}" data-action="set-view" data-v="explore">⌑ Explore & Later</button>
+            <button class="${state.view === 'bucket' ? 'active' : ''}" data-action="set-view" data-v="bucket">★ Bucket List</button>
           </nav>
           <div class="switcher"><button class="gbtn" data-action="prev-period" aria-label="Previous period">‹</button><span class="wlabel">${periodLabel}</span><button class="gbtn" data-action="next-period" aria-label="Next period">›</button></div>
           <div class="spacer"></div>
@@ -1314,7 +1361,7 @@ function renderDesktop() {
             ${installEvt ? '<button data-action="install">Install app</button>' : ''}
           </div>` : ''}</div>
         </header>
-        ${state.view === 'habits' ? renderHabitsMain(today) : state.view === 'explore' ? renderExploreMain() : renderGoalsMain(curMonth, today)}
+        ${state.view === 'habits' ? renderHabitsMain(today) : state.view === 'explore' ? renderExploreMain() : state.view === 'bucket' ? renderBucketMain() : renderGoalsMain(curMonth, today)}
       </section>
     </div>`;
 }
@@ -1546,7 +1593,7 @@ function renderPhone() {
       </div>` : ''}
       ${calOpen ? `<div class="cal-wrap"><div class="backdrop" data-action="cal-close"></div>${renderCal()}</div>` : ''}
     </header>
-    ${state.view === 'habits' ? renderPhoneHabits(today) : `<main>
+    ${state.view === 'habits' ? renderPhoneHabits(today) : state.view === 'bucket' ? renderBucketMain() : `<main>
       ${cards}
     </main>`}`;
 }
@@ -1668,7 +1715,7 @@ app.addEventListener('click', (e) => {
   const curMonth = monthOfWeek(curWeek);
 
   switch (a) {
-    case 'set-view': state.view = ['habits','explore'].includes(el.dataset.v) ? el.dataset.v : 'goals'; save(); render(); break;
+    case 'set-view': state.view = ['habits','explore','bucket'].includes(el.dataset.v) ? el.dataset.v : 'goals'; save(); render(); break;
     case 'prev-week': setWeek(toISODate(addDays(parseISO(curWeek), -7))); render(); break;
     case 'next-week': setWeek(toISODate(addDays(parseISO(curWeek), 7))); render(); break;
     case 'goals-period': goalsPeriod = el.dataset.period === 'month' ? 'month' : 'week'; if (goalsPeriod === 'month') curMonthView = monthOfWeek(curWeek); render(); break;
@@ -1838,6 +1885,11 @@ app.addEventListener('click', (e) => {
     case 'explore-delete': {
       if(confirm('Remove this item from Explore & Later?')){state.exploreItems=state.exploreItems.filter(x=>x.id!==id);save();render();}break;
     }
+    case 'bucket-add': editBucketItem(); break;
+    case 'bucket-edit': editBucketItem(id); break;
+    case 'bucket-delete': {
+      if(confirm('Remove this item from your bucket list?')){state.bucketItems=state.bucketItems.filter(x=>x.id!==id);save();render();}break;
+    }
     case 'habit-add': {
       menuOpen = false;
       const hid = uid();
@@ -1878,6 +1930,7 @@ app.addEventListener('change', (e) => {
   const el = e.target.closest('[data-change]');
   if (!el) return;
   if (el.dataset.change === 'explore-done') { const item=state.exploreItems.find(x=>x.id===el.dataset.id); if(!item)return; item.done=el.checked; save(); render(); return; }
+  if (el.dataset.change === 'bucket-done') { const item=state.bucketItems.find(x=>x.id===el.dataset.id); if(!item)return; item.done=el.checked; save(); render(); return; }
   const t = el.dataset.change === 'task-done' ? findTask(el.dataset.id) : findTarget(el.dataset.id);
   if (!t) return;
   if (el.dataset.change === 'task-done') t.done = el.checked;
@@ -1947,10 +2000,12 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
   try {
     const data = JSON.parse(await f.text());
     if (confirm('Importing will replace ALL current data. Continue?')) {
-      state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], view: 'goals', ...data };
+      state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], bucketItems: [], bucketCategories: [], view: 'goals', ...data };
       if (!Array.isArray(state.habits)) state.habits = [];
       if (!Array.isArray(state.exploreItems)) state.exploreItems = [];
-      if (!['habits','explore'].includes(state.view)) state.view = 'goals';
+      if (!Array.isArray(state.bucketItems)) state.bucketItems = [];
+      if (!Array.isArray(state.bucketCategories)) state.bucketCategories = [];
+      if (!['habits','explore','bucket'].includes(state.view)) state.view = 'goals';
       ensureCategories();
       menuOpen = false;
       save(); render();
