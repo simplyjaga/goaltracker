@@ -171,7 +171,7 @@
   .cobanner .cot b { display: block; font-size: 13px; color: var(--text); }
   .cobanner .cot span { font-size: 12px; color: var(--muted); }
   .copanel { margin: -8px 0 14px; padding: 6px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
-  .corow { display: flex; align-items: center; gap: 8px; padding: 7px 0; font-size: 13px; }
+  .corow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 7px 0; font-size: 13px; }
   .corow + .corow { border-top: 1px solid var(--border); }
   .corow .ct { flex: 1; min-width: 0; color: var(--text2); overflow-wrap: break-word; }
   .corow .ct small { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); }
@@ -1324,6 +1324,7 @@ const app = document.getElementById('app');
 const segHtml = () => `<div class="seg">
   <button class="${state.view === 'goals' ? 'sel' : ''}" data-action="set-view" data-v="goals">Goals</button>
   <button class="${state.view === 'habits' ? 'sel' : ''}" data-action="set-view" data-v="habits">Habits</button>
+  <button class="${state.view === 'explore' ? 'sel' : ''}" data-action="set-view" data-v="explore">Explore</button>
   <button class="${state.view === 'bucket' ? 'sel' : ''}" data-action="set-view" data-v="bucket">Bucket</button>
 </div>`;
 
@@ -1567,6 +1568,11 @@ function renderPhone() {
     .map((s) => catHeadHtml(s.cat, s.goals) + (s.cat && s.cat.collapsed ? '' : s.goals.map((g) => renderPhoneCard(g, curDay, today)).join('')))
     .join('');
 
+  const co = carryOvers();
+  const coCard = co.length
+    ? `<div class="pcard"><div class="psec"><div class="pday">Carry-over</div>${co.map((x) => coRowHtml(x, true)).join('')}</div></div>`
+    : '';
+
   app.innerHTML = `
     <header>
       <span class="logo">${LOGO}</span>
@@ -1593,8 +1599,10 @@ function renderPhone() {
       </div>` : ''}
       ${calOpen ? `<div class="cal-wrap"><div class="backdrop" data-action="cal-close"></div>${renderCal()}</div>` : ''}
     </header>
-    ${state.view === 'habits' ? renderPhoneHabits(today) : state.view === 'bucket' ? renderBucketMain() : `<main>
+    ${state.view === 'habits' ? renderPhoneHabits(today) : state.view === 'explore' ? renderExploreMain() : state.view === 'bucket' ? renderBucketMain() : `<main>
+      ${coCard}
       ${cards}
+      <button class="dashed" data-action="add-cat">＋ Add category</button>
     </main>`}`;
 }
 
@@ -1645,14 +1653,20 @@ function renderPhoneCard(goal, day, today) {
       <div class="mtitle" data-action="edit-goal" data-id="${goal.id}">${esc(goal.title)}</div>
       ${bar(mFrac, 'm')}
       <div class="mtools">
-        <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Move to category">▤</button>
+        <div class="mv-wrap"><button class="del mvbtn" data-action="move-goal" data-id="${goal.id}" title="Goal options">⋯</button>
           ${moveFor === goal.id ? `<div class="dropdown">
+            <div class="dd-h">Goal options</div>
+            <button data-action="goal-close" data-id="${goal.id}">✓ Mark complete</button>
+            <div class="dd-sep"></div>
+            <div class="dd-h">Move to category</div>
             ${state.categories.slice().sort((a, b) => a.order - b.order).map((c) =>
-              `<button data-action="move-pick" data-id="${goal.id}" data-cat="${c.id}" class="${c.id === goal.categoryId ? 'sel' : ''}">${esc(c.name)}</button>`).join('')}
+              `<button data-action="move-pick" data-id="${goal.id}" data-cat="${c.id}" class="${c.id === goal.categoryId ? 'sel' : ''}"><span class="catdot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')}
             <button data-action="move-pick" data-id="${goal.id}" data-cat="" class="${!catOf(goal) ? 'sel' : ''}">Uncategorized</button>
+            <div class="dd-sep"></div>
+            <button class="danger" data-action="del-goal" data-id="${goal.id}">✕ Delete goal</button>
           </div>` : ''}
         </div>
-        <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete monthly goal">✕</button>
+        <button class="del" data-action="del-goal" data-id="${goal.id}" title="Delete goal">✕</button>
       </div>
     </div>
     <div class="pconn">${downArrow(mFrac)}</div>
