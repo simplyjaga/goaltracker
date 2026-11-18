@@ -641,7 +641,7 @@ const authReady = (async () => {
 })();
 
 function hasTrackerData(data) {
-  return ['monthGoals', 'weekPlans', 'weekTargets', 'dayTasks', 'habits', 'exploreItems', 'bucketItems']
+  return ['monthGoals', 'weekPlans', 'weekTargets', 'dayTasks', 'habits', 'exploreItems', 'bucketItems', 'bucketCategories']
     .some((key) => Array.isArray(data[key]) && data[key].length > 0);
 }
 
@@ -674,12 +674,13 @@ function showCloudSyncOptions(cloud, user) {
           throw new Error('The cloud backup has an unexpected format. Local data was not changed.');
         }
         state = {
-          monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], bucketItems: [], view: 'goals',
+          monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], bucketItems: [], bucketCategories: [], view: 'goals',
           ...cloud.data,
         };
         if (!Array.isArray(state.habits)) state.habits = [];
         if (!Array.isArray(state.exploreItems)) state.exploreItems = [];
         if (!Array.isArray(state.bucketItems)) state.bucketItems = [];
+        if (!Array.isArray(state.bucketCategories)) state.bucketCategories = [];
         if (!['habits','explore','bucket'].includes(state.view)) state.view = 'goals';
         ensureCategories();
         save();
@@ -795,10 +796,11 @@ function ensureCategories() {
   if (!Array.isArray(state.categories)) { state.categories = defaultCategories(); save(); }
 }
 
-state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], bucketItems: [], view: 'goals', ...load() };
+state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], bucketItems: [], bucketCategories: [], view: 'goals', ...load() };
 if (!Array.isArray(state.habits)) state.habits = [];
 if (!Array.isArray(state.exploreItems)) state.exploreItems = [];
 if (!Array.isArray(state.bucketItems)) state.bucketItems = [];
+if (!Array.isArray(state.bucketCategories)) state.bucketCategories = [];
 if (!['habits','explore','bucket'].includes(state.view)) state.view = 'goals';
 ensureCategories();
 navigator.storage?.persist?.();
@@ -1128,7 +1130,7 @@ function todayPanelHtml(today) {
       </div>
       <div>
         <div class="tp-h">Carry-over tasks</div>
-        ${co.length ? co.map((x) => coRowHtml(x, false)).join('') : '<div class="tp-empty">Nothing carried over — all caught up.</div>'}
+        ${co.length ? co.map((x) => coRowHtml(x, true)).join('') : '<div class="tp-empty">Nothing carried over — all caught up.</div>'}
       </div>
     </div>
   </div>`;
@@ -1275,25 +1277,38 @@ function renderExploreMain() {
   ${items.length?sections.map(sectionHtml).join(''):'<div class="explore-empty">Nothing saved for later yet. Add a topic, resource, or project idea when you come across one.</div>'}</div></main>`;
 }
 
+function addBucketCategory(name){
+  const used = new Set((state.bucketCategories||[]).map(c=>c.color));
+  const color = PALETTE.find((c) => !used.has(c)) || PALETTE[0];
+  const id = uid();
+  state.bucketCategories.push({id,name,color,order:state.bucketCategories.length});
+  return id;
+}
 async function editBucketItem(id){
   const item=id?state.bucketItems.find(x=>x.id===id):null;
-  const cats=(state.categories||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  const cats=(state.bucketCategories||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
   const values=await showAppDialog({title:item?'Edit wish':'Bucket List',description:'A multi-year wish or life goal — something to work towards when the time is right.',submitLabel:item?'Save changes':'Add to list',initial:item||{},fields:[
     {name:'title',label:'What do you want to achieve?',required:true,placeholder:'e.g. Learn car driving'},
     {name:'description',label:'Why it matters / notes',type:'textarea',placeholder:'Motivation, first steps, or anything to remember'},
     {name:'timeframe',label:'Target timeframe (optional)',placeholder:'e.g. by 2028, after GATE'},
-    {name:'categoryId',label:'Link to a category (optional)',type:'select',options:[{value:'',label:'No linked category'},...cats.map(c=>({value:c.id,label:c.name}))]}
+    {name:'categoryId',label:'List (optional)',type:'select',options:[{value:'',label:'No list'},...cats.map(c=>({value:c.id,label:c.name})),{value:'__new__',label:'＋ New list…'}]}
   ]});
   if(!values)return;
+  if(values.categoryId==='__new__'){
+    const res=await showAppDialog({title:'New list',description:'Name this bucket list — e.g. Career, Fitness, Skills.',submitLabel:'Create',fields:[
+      {name:'name',label:'List name',required:true,placeholder:'e.g. Career'}
+    ]});
+    values.categoryId=res?addBucketCategory(res.name):'';
+  }
   if(item)Object.assign(item,values);else state.bucketItems.push({id:uid(),...values,done:false,order:state.bucketItems.length});
   save();render();
 }
 
 function renderBucketMain() {
   const items=(state.bucketItems||[]).slice().sort((a,b)=>(a.done===b.done?(a.order||0)-(b.order||0):Number(a.done)-Number(b.done)));
-  const catOfItem=(item)=>(state.categories||[]).find(c=>c.id===item.categoryId)||null;
+  const catOfItem=(item)=>(state.bucketCategories||[]).find(c=>c.id===item.categoryId)||null;
   const itemHtml=(item)=>`<article class="explore-item"><input type="checkbox" data-change="bucket-done" data-id="${item.id}" ${item.done?'checked':''} aria-label="Mark as achieved"/><div class="explore-copy"><div class="explore-title ${item.done?'done':''}" data-action="bucket-edit" data-id="${item.id}">${esc(item.title)}</div>${item.description?`<p>${esc(item.description)}</p>`:''}${item.timeframe?`<span class="explore-goal">◷ ${esc(item.timeframe)}</span>`:''}</div><div class="explore-actions"><button data-action="bucket-delete" data-id="${item.id}" aria-label="Remove item">×</button></div></article>`;
-  const sections=(state.categories||[]).slice().sort((a,b)=>a.order-b.order)
+  const sections=(state.bucketCategories||[]).slice().sort((a,b)=>a.order-b.order)
     .map(cat=>({cat,items:items.filter(i=>catOfItem(i)===cat)}))
     .filter(s=>s.items.length);
   const uncat=items.filter(i=>!catOfItem(i));
@@ -1985,10 +2000,11 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
   try {
     const data = JSON.parse(await f.text());
     if (confirm('Importing will replace ALL current data. Continue?')) {
-      state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], bucketItems: [], view: 'goals', ...data };
+      state = { monthGoals: [], weekPlans: [], weekTargets: [], dayTasks: [], habits: [], exploreItems: [], bucketItems: [], bucketCategories: [], view: 'goals', ...data };
       if (!Array.isArray(state.habits)) state.habits = [];
       if (!Array.isArray(state.exploreItems)) state.exploreItems = [];
       if (!Array.isArray(state.bucketItems)) state.bucketItems = [];
+      if (!Array.isArray(state.bucketCategories)) state.bucketCategories = [];
       if (!['habits','explore','bucket'].includes(state.view)) state.view = 'goals';
       ensureCategories();
       menuOpen = false;
