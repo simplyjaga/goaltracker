@@ -408,6 +408,9 @@ body{background:var(--bg);color:var(--text);font-size:14px}.wrap{min-width:0;min
 .explore-cat{display:flex;align-items:center;gap:8px;margin:14px 0 2px;padding:0 4px}
 .explore-cat .catname{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
 .explore-count{font-size:10px;font-weight:600;color:var(--muted);background:var(--fill);border:1px solid var(--border);border-radius:9px;padding:1px 8px}
+.explore-actions .xstatus{border:1px solid var(--border);background:var(--fill);color:var(--muted);border-radius:9px;padding:3px 10px;font:600 10px var(--sans);cursor:pointer;white-space:nowrap}
+.explore-actions .xstatus.doing{color:#fbbf24;border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.1)}
+.explore-actions .xstatus.done{color:#34d399;border-color:rgba(52,211,153,.45);background:rgba(52,211,153,.1)}
 
 
 /* Desktop month view: details below the calendar, never squeezed into a narrow rail. */
@@ -1266,7 +1269,9 @@ async function editExploreItem(id){
 function renderExploreMain() {
   const items=(state.exploreItems||[]).slice().sort((a,b)=>(a.done===b.done?(a.order||0)-(b.order||0):Number(a.done)-Number(b.done)));
   const catOfItem=(item)=>{const cid=item.categoryId||(findGoal(item.goalId)||{}).categoryId;return (state.categories||[]).find(c=>c.id===cid)||null;};
-  const itemHtml=(item)=>`<article class="explore-item"><input type="checkbox" data-change="explore-done" data-id="${item.id}" ${item.done?'checked':''} aria-label="Mark as picked up"/><div class="explore-copy"><div class="explore-title ${item.done?'done':''}" data-action="explore-edit" data-id="${item.id}">${esc(item.title)}</div>${item.description?`<p>${esc(item.description)}</p>`:''}</div><div class="explore-actions">${item.url?`<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">Open ↗</a>`:''}<button data-action="explore-delete" data-id="${item.id}" aria-label="Remove item">×</button></div></article>`;
+  const stOf=(item)=>item.done?'done':(item.status==='doing'?'doing':'todo');
+  const stLabel={todo:'To pick up',doing:'In progress',done:'Done'};
+  const itemHtml=(item)=>`<article class="explore-item"><input type="checkbox" data-change="explore-done" data-id="${item.id}" ${item.done?'checked':''} aria-label="Mark as picked up"/><div class="explore-copy"><div class="explore-title ${item.done?'done':''}" data-action="explore-edit" data-id="${item.id}">${esc(item.title)}</div>${item.description?`<p>${esc(item.description)}</p>`:''}</div><div class="explore-actions"><button class="xstatus ${stOf(item)}" data-action="explore-status" data-id="${item.id}" title="Click to change status">${stLabel[stOf(item)]}</button>${item.url?`<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">Open ↗</a>`:''}<button data-action="explore-delete" data-id="${item.id}" aria-label="Remove item">×</button></div></article>`;
   const sections=(state.categories||[]).slice().sort((a,b)=>a.order-b.order)
     .map(cat=>({cat,items:items.filter(i=>catOfItem(i)===cat)}))
     .filter(s=>s.items.length);
@@ -1885,6 +1890,14 @@ app.addEventListener('click', (e) => {
     case 'explore-delete': {
       if(confirm('Remove this item from Explore & Later?')){state.exploreItems=state.exploreItems.filter(x=>x.id!==id);save();render();}break;
     }
+    case 'explore-status': {
+      const item = state.exploreItems.find((x) => x.id === id);
+      if (!item) break;
+      const cur = item.done ? 'done' : (item.status === 'doing' ? 'doing' : 'todo');
+      const next = { todo: 'doing', doing: 'done', done: 'todo' }[cur];
+      item.status = next; item.done = next === 'done';
+      save(); render(); break;
+    }
     case 'bucket-add': editBucketItem(); break;
     case 'bucket-edit': editBucketItem(id); break;
     case 'bucket-delete': {
@@ -1929,7 +1942,7 @@ app.addEventListener('click', (e) => {
 app.addEventListener('change', (e) => {
   const el = e.target.closest('[data-change]');
   if (!el) return;
-  if (el.dataset.change === 'explore-done') { const item=state.exploreItems.find(x=>x.id===el.dataset.id); if(!item)return; item.done=el.checked; save(); render(); return; }
+  if (el.dataset.change === 'explore-done') { const item=state.exploreItems.find(x=>x.id===el.dataset.id); if(!item)return; item.done=el.checked; item.status=el.checked?'done':'todo'; save(); render(); return; }
   if (el.dataset.change === 'bucket-done') { const item=state.bucketItems.find(x=>x.id===el.dataset.id); if(!item)return; item.done=el.checked; save(); render(); return; }
   const t = el.dataset.change === 'task-done' ? findTask(el.dataset.id) : findTarget(el.dataset.id);
   if (!t) return;
